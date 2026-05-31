@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserTier {
+  FREEMIUM
+  STARTER
+  PRO
+}
+
+enum ApplicationStatus {
+  DRAFT
+  APPLIED
+  WAITING
+  INTERVIEW
+  REJECTED
+  OFFER
+  ACCEPTED
+}
+
+enum CoverLetterSource {
+  MANUAL
+  AI
+}
+
+model User {
+  id                     String    @id @default(uuid()) @db.Uuid
+  email                  String    @unique
+  tier                   UserTier  @default(FREEMIUM)
+  aiLettersUsedThisMonth Int       @default(0)
+  aiUsagePeriodStart     DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  profile      Profile?
+  applications Application[]
+
+  @@map("users")
+}
+
+model Profile {
+  userId         String   @id @db.Uuid
+  summary        String?
+  experienceJson Json?
+  skills         String[] @default([])
+  educationJson  Json?
+  cvFileUrl      String?
+  quizJson       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Application {
+  id                    String            @id @default(uuid()) @db.Uuid
+  userId                String            @db.Uuid
+  status                ApplicationStatus @default(DRAFT)
+  company               String
+  title                 String
+  jobExternalId         String?
+  jobDescriptionSnapshot String?          @db.Text
+  notes                 String?           @db.Text
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coverLetters CoverLetter[]
+
+  @@unique([userId, jobExternalId])
+  @@index([userId])
+  @@map("applications")
+}
+
+model CoverLetter {
+  id            String            @id @default(uuid()) @db.Uuid
+  applicationId String            @db.Uuid
+  content       String            @db.Text
+  source        CoverLetterSource @default(MANUAL)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("cover_letters")
+}

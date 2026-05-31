@@ -1,0 +1,17 @@
+{
+  "name": "guavajobs",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev:landing": "pnpm --filter @guavajobs/landingpage dev",
+    "dev:app": "pnpm --filter @guavajobs/app dev",
+    "build:landing": "pnpm --filter @guavajobs/landingpage build",
+    "build:app": "pnpm --filter @guavajobs/app build",
+    "typecheck:core": "pnpm --filter @guavajobs/core typecheck",
+    "db:generate": "npm run db:generate --prefix packages/core",
+    "db:push": "npm run db:push --prefix packages/core",
+    "db:seed": "npm run db:seed --prefix packages/core",
+    "db:generate:pnpm": "pnpm --filter @guavajobs/core db:generate",
+    "db:push:pnpm": "pnpm --filter @guavajobs/core db:push"
+  }
+}

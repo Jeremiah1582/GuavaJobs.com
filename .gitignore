@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Env (keep examples)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Debug / OS
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Prisma generated client (run pnpm --filter @guavajobs/core db:generate)
+packages/core/src/generated/
+
+# Vercel
+.vercel
+
+# IDE
+.idea/
+.vscode/
