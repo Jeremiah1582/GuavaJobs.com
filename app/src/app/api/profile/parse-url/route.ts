@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server"
 import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
+import { createOpenAI } from "@ai-sdk/openai"
 
 import { getSession } from "@/lib/auth/get-session"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
+
+// Configure OpenRouter via OpenAI-compatible API
+const openrouter = createOpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENAI_API_KEY,
+})
 
 const SYSTEM_PROMPT = `You are a profile data extractor. Given HTML content from a personal portfolio or professional profile page, extract relevant information to populate a job seeker's profile.
 
@@ -86,9 +92,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // Use AI to extract profile data
+    // Use AI to extract profile data via OpenRouter
     const { text } = await generateText({
-      model: openai("gpt-4o-mini"),
+      model: openrouter("openai/gpt-4o-mini"),
       system: SYSTEM_PROMPT,
       prompt: `Extract profile information from this page content:\n\n${textContent}`,
       temperature: 0.1,
