@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { generateText } from "ai"
-import { gateway } from "@ai-sdk/gateway"
+import { openai } from "@ai-sdk/openai"
 
 import { getSession } from "@/lib/auth/get-session"
 
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 
     // Use AI to extract profile data
     const { text } = await generateText({
-      model: gateway("openai/gpt-4o-mini"),
+      model: openai("gpt-4o-mini"),
       system: SYSTEM_PROMPT,
       prompt: `Extract profile information from this page content:\n\n${textContent}`,
       temperature: 0.1,
