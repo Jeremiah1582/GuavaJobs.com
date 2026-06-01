@@ -19,7 +19,9 @@ type JobSearchToolbarProps = {
 }
 
 const FILTER_SELECT_CLASS =
-  "flex h-12 w-full min-w-0 rounded-xl border border-input/80 bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-guava-pink/40 disabled:opacity-60"
+  "block h-9 w-full min-w-0 truncate rounded-lg border border-input/80 bg-background px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-guava-pink/40 disabled:opacity-60 sm:h-10 sm:rounded-xl sm:px-3 sm:text-sm"
+
+const FILTER_FIELD_CLASS = "min-w-0 shrink flex-1 basis-0"
 
 export function JobSearchToolbar({ defaults, preferenceQ }: JobSearchToolbarProps) {
   const router = useRouter()
@@ -40,7 +42,7 @@ export function JobSearchToolbar({ defaults, preferenceQ }: JobSearchToolbarProp
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <JobSearchBar
         defaultQ={defaults.q ?? ""}
         defaultWhere={defaults.where ?? ""}
@@ -48,12 +50,9 @@ export function JobSearchToolbar({ defaults, preferenceQ }: JobSearchToolbarProp
         preferenceQ={preferenceQ}
       />
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/95 p-4 shadow-search-float backdrop-blur-sm md:flex-row md:items-end md:gap-3">
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <label
-            htmlFor="filter-distance"
-            className="block text-xs font-medium text-muted-foreground md:sr-only"
-          >
+      <div className="flex min-w-0 flex-nowrap items-stretch gap-1.5 rounded-xl border border-border/80 bg-card/95 p-2 shadow-search-float backdrop-blur-sm sm:gap-2 sm:rounded-2xl sm:p-2.5">
+        <div className={`${FILTER_FIELD_CLASS} min-w-[5.5rem]`}>
+          <label htmlFor="filter-distance" className="sr-only">
             Distance
           </label>
           <select
@@ -75,11 +74,8 @@ export function JobSearchToolbar({ defaults, preferenceQ }: JobSearchToolbarProp
           </select>
         </div>
 
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <label
-            htmlFor="filter-date"
-            className="block text-xs font-medium text-muted-foreground md:sr-only"
-          >
+        <div className={`${FILTER_FIELD_CLASS} min-w-[5.5rem]`}>
+          <label htmlFor="filter-date" className="sr-only">
             Date posted
           </label>
           <select
@@ -101,11 +97,8 @@ export function JobSearchToolbar({ defaults, preferenceQ }: JobSearchToolbarProp
           </select>
         </div>
 
-        <div className="min-w-0 flex-1 space-y-1.5 md:max-w-[11rem]">
-          <label
-            htmlFor="filter-sort"
-            className="block text-xs font-medium text-muted-foreground md:sr-only"
-          >
+        <div className={`${FILTER_FIELD_CLASS} min-w-[4.5rem] max-w-[9rem] sm:max-w-[11rem]`}>
+          <label htmlFor="filter-sort" className="sr-only">
             Sort by
           </label>
           <select

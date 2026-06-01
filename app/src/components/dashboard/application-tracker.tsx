@@ -292,6 +292,11 @@ export function ApplicationTracker({ applications }: ApplicationTrackerProps) {
                   <Badge variant="outline" className="w-fit border-current/30 bg-background/40">
                     {statusLabel(application)}
                   </Badge>
+                  {application.coverLetterPreview ? (
+                    <Badge variant="secondary" className="w-fit text-xs">
+                      Letter
+                    </Badge>
+                  ) : null}
                   {application.viaRecruiter ? (
                     <UserRound className="size-4 opacity-70" aria-label="Via recruiter" />
                   ) : null}
@@ -564,6 +569,25 @@ export function ApplicationTracker({ applications }: ApplicationTrackerProps) {
                           {detail.aboutNotes}
                         </p>
                       ) : null}
+
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Cover letter</p>
+                        {application.coverLetterPreview ? (
+                          <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+                            {application.coverLetterPreview}
+                          </p>
+                        ) : (
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            No cover letter saved yet.
+                          </p>
+                        )}
+                        <Link
+                          href={`/applications/${application.id}`}
+                          className="mt-2 inline-block text-xs font-medium text-accent hover:underline"
+                        >
+                          {application.coverLetterPreview ? "Edit letter" : "Write cover letter"}
+                        </Link>
+                      </div>
 
                       <div>
                         <p className="text-sm font-medium text-foreground">Notes</p>

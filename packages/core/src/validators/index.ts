@@ -32,3 +32,9 @@ export {
   savedJobSearchCreateSchema,
   type SavedJobSearchCreateInput,
 } from "./saved-job-searches";
+export {
+  coverLetterContentSchema,
+  coverLetterGenerateSchema,
+  type CoverLetterContentInput,
+  type CoverLetterGenerateInput,
+} from "./cover-letters";

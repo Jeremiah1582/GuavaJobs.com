@@ -26,7 +26,7 @@ export async function JobsSearchSection({ search }: JobsSearchSectionProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 sm:space-y-3">
       <JobSearchToolbar defaults={search} preferenceQ={preferenceQ} />
       <Suspense fallback={null}>
         <SavedSearchChips

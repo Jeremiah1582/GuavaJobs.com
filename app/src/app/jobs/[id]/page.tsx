@@ -7,6 +7,7 @@ import { jobsService, JobsServiceError } from "@guavajobs/core"
 import { AdzunaAttribution } from "@/components/jobs/adzuna-attribution"
 import { JobDetailContent } from "@/components/jobs/job-detail-content"
 import { EmptyState } from "@/components/empty-state"
+import { getJobCoverLetterContextAction } from "@/lib/applications/generate-cover-letter"
 import { trackJobById } from "@/lib/applications/track-job"
 import { getSession } from "@/lib/auth/get-session"
 import { appUrl } from "@/lib/env"
@@ -76,6 +77,10 @@ export default async function JobDetailPage({
 
   if (!job) notFound()
 
+  const coverLetterContext = session
+    ? await getJobCoverLetterContextAction(job.id)
+    : null
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 md:px-6">
       <nav className="mb-6 text-sm text-muted-foreground">
@@ -86,7 +91,11 @@ export default async function JobDetailPage({
         <span className="text-foreground">{job.title}</span>
       </nav>
 
-      <JobDetailContent job={job} session={session} />
+      <JobDetailContent
+        job={job}
+        session={session}
+        coverLetterContext={coverLetterContext}
+      />
 
       <footer className="mt-12 space-y-4 border-t border-border pt-8">
         <AdzunaAttribution />

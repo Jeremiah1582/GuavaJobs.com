@@ -62,34 +62,34 @@ function IconSearch({ className }: IconProps) {
 }
 
 const FORM_CLASS = [
-  "grid w-full grid-cols-1 gap-3 rounded-2xl border border-border/80 bg-card/95 p-4",
-  "shadow-search-float backdrop-blur-sm",
-  "md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_11.5rem_auto] md:items-center md:gap-2 md:p-3",
-  "lg:gap-3 lg:p-4",
+  "flex w-full min-w-0 flex-nowrap items-stretch gap-1.5",
+  "rounded-xl border border-border/80 bg-card/95 p-2 shadow-search-float backdrop-blur-sm",
+  "sm:gap-2 sm:rounded-2xl sm:p-2.5",
 ].join(" ");
 
+const FIELD_WRAP_CLASS = "relative min-w-0 shrink";
+
 const TEXT_INPUT_CLASS = [
-  "block h-12 w-full min-w-0 rounded-xl border border-input/80 bg-background py-2 pl-11 pr-3",
-  "text-sm text-foreground shadow-sm ring-offset-background",
+  "block h-9 w-full min-w-0 rounded-lg border border-input/80 bg-background py-1.5 pl-9 pr-2",
+  "text-xs text-foreground shadow-sm ring-offset-background sm:h-10 sm:rounded-xl sm:pl-10 sm:pr-3 sm:text-sm",
   "placeholder:text-muted-foreground",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-guava-pink/40",
 ].join(" ");
 
 const SELECT_CLASS = [
-  "block h-12 w-full min-w-0 appearance-none rounded-xl border border-input/80 bg-background px-3",
-  "text-sm text-foreground shadow-sm",
+  "block h-9 w-full min-w-0 appearance-none truncate rounded-lg border border-input/80 bg-background",
+  "px-2 text-xs text-foreground shadow-sm sm:h-10 sm:rounded-xl sm:px-3 sm:text-sm",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-guava-pink/40",
 ].join(" ");
 
 const BUTTON_CLASS = [
-  "inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl",
-  "bg-guava-pink-gradient px-5 text-sm font-medium text-white shadow-md",
+  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg",
+  "bg-guava-pink-gradient px-2.5 text-sm font-medium text-white shadow-md",
   "transition-opacity hover:opacity-90 disabled:opacity-60",
-  "md:w-auto md:min-w-[9.5rem] md:justify-self-end md:px-6",
+  "sm:h-10 sm:gap-2 sm:rounded-xl sm:px-4",
 ].join(" ");
 
-const DEFAULT_Q_PLACEHOLDER =
-  "Junior AI engineer, React developer, solutions engineer…";
+const DEFAULT_Q_PLACEHOLDER = "Role or keywords…";
 
 export type JobSearchBarFormProps = Omit<
   FormHTMLAttributes<HTMLFormElement>,
@@ -123,18 +123,17 @@ export function JobSearchBarForm({
   ...formProps
 }: JobSearchBarFormProps) {
   const qControlled = q !== undefined && onQChange !== undefined;
-  const cityPlaceholder =
-    defaultCountry === "de" ? "City, e.g. Berlin" : "City, e.g. London";
+  const cityPlaceholder = "City";
 
   return (
     <form {...formProps} className={`${FORM_CLASS} ${className}`.trim()}>
       {children}
 
-      <div className="relative min-w-0">
+      <div className={`${FIELD_WRAP_CLASS} min-w-[5.5rem] flex-[1.35]`}>
         <label htmlFor={`${idPrefix}-q`} className="sr-only">
           Keywords
         </label>
-        <IconBriefcase className="pointer-events-none absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 text-guava-pink/70" />
+        <IconBriefcase className="pointer-events-none absolute left-2.5 top-1/2 z-10 size-3.5 -translate-y-1/2 text-guava-pink/70 sm:left-3 sm:size-4" />
         <input
           id={`${idPrefix}-q`}
           name="q"
@@ -147,11 +146,11 @@ export function JobSearchBarForm({
         />
       </div>
 
-      <div className="relative min-w-0">
+      <div className={`${FIELD_WRAP_CLASS} min-w-[4.25rem] flex-1`}>
         <label htmlFor={`${idPrefix}-where`} className="sr-only">
           Location
         </label>
-        <IconMapPin className="pointer-events-none absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 text-guava-green/80" />
+        <IconMapPin className="pointer-events-none absolute left-2.5 top-1/2 z-10 size-3.5 -translate-y-1/2 text-guava-green/80 sm:left-3 sm:size-4" />
         <input
           id={`${idPrefix}-where`}
           name="where"
@@ -162,7 +161,7 @@ export function JobSearchBarForm({
         />
       </div>
 
-      <div className="relative min-w-0">
+      <div className={`${FIELD_WRAP_CLASS} w-[4.75rem] sm:w-[7.25rem]`}>
         <label htmlFor={`${idPrefix}-country`} className="sr-only">
           Market
         </label>
@@ -172,14 +171,21 @@ export function JobSearchBarForm({
           defaultValue={defaultCountry}
           className={SELECT_CLASS}
         >
-          <option value="gb">United Kingdom</option>
+          <option value="gb">UK</option>
           <option value="de">Germany</option>
         </select>
       </div>
 
-      <button type="submit" disabled={pending} className={BUTTON_CLASS}>
+      <button
+        type="submit"
+        disabled={pending}
+        className={BUTTON_CLASS}
+        aria-label={pending ? "Searching" : submitLabel}
+      >
         <IconSearch className="size-4 shrink-0" />
-        <span className="whitespace-nowrap">{pending ? "Searching…" : submitLabel}</span>
+        <span className="hidden whitespace-nowrap sm:inline">
+          {pending ? "Searching…" : submitLabel}
+        </span>
       </button>
     </form>
   );

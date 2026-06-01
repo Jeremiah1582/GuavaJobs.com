@@ -8,7 +8,9 @@ import {
 import type { JobListing } from "@guavajobs/core"
 
 import { Button } from "@/components/ui/button"
+import { JobCoverLetterGenerate } from "@/components/jobs/job-cover-letter-generate"
 import { trackJobAction } from "@/lib/applications/track-job"
+import type { JobCoverLetterContext } from "@/lib/applications/cover-letter-context"
 import { formatPostedDate, formatSalary, stripHtml } from "@/lib/jobs/format"
 
 type JobDetailContentProps = {
@@ -16,6 +18,7 @@ type JobDetailContentProps = {
   session: { id: string } | null
   compact?: boolean
   showFooterMeta?: boolean
+  coverLetterContext?: JobCoverLetterContext | null
 }
 
 export function JobDetailContent({
@@ -23,6 +26,7 @@ export function JobDetailContent({
   session,
   compact = false,
   showFooterMeta = true,
+  coverLetterContext = null,
 }: JobDetailContentProps) {
   const salary = formatSalary(job.salary)
   const description = stripHtml(job.description)
@@ -107,6 +111,13 @@ export function JobDetailContent({
           </Button>
         ) : null}
       </div>
+
+      <JobCoverLetterGenerate
+        jobId={job.id}
+        session={session}
+        initialContext={coverLetterContext}
+        signInNext={trackNext}
+      />
 
       {description ? (
         <section className={compact ? "min-h-0 flex-1 overflow-y-auto" : ""}>

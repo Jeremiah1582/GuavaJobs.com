@@ -9,6 +9,7 @@ import { JobsSearchSection } from "@/components/jobs/jobs-search-section"
 import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
 import { Skeleton } from "@/components/ui/skeleton"
+import { getJobCoverLetterContext } from "@/lib/applications/cover-letter-context"
 import { trackJobById } from "@/lib/applications/track-job"
 import { getSession } from "@/lib/auth/get-session"
 import { getGeoLocation } from "@/lib/geo/server"
@@ -61,12 +62,19 @@ async function JobsResults({ search }: { search: ParsedJobsSearchParams }) {
 
     const detailJobId = search.job ?? result.jobs[0]?.id ?? null
     let selectedJob: JobListing | null = null
+    let coverLetterContext = null
     if (detailJobId) {
       const fromList = result.jobs.find((j) => j.id === detailJobId) ?? null
       try {
         selectedJob = (await jobsService.getById(detailJobId)) ?? fromList
       } catch {
         selectedJob = fromList
+      }
+      if (selectedJob) {
+        coverLetterContext = await getJobCoverLetterContext(
+          session?.id ?? null,
+          selectedJob.id,
+        )
       }
     }
 
@@ -79,6 +87,7 @@ async function JobsResults({ search }: { search: ParsedJobsSearchParams }) {
         resultsPerPage={result.resultsPerPage}
         search={{ ...search, job: selectedJob?.id ?? search.job }}
         selectedJob={selectedJob}
+        coverLetterContext={coverLetterContext}
         session={session}
         defaultSearchBanner={buildDefaultBanner(search)}
       />

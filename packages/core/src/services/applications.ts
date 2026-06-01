@@ -1,10 +1,21 @@
 import type {
   Application,
   ApplicationNote,
+  ApplicationProfileSnapshot,
   ApplicationRejectionPhase,
   ApplicationStatus as PrismaApplicationStatus,
+  CoverLetter,
 } from "../generated/prisma";
 import { nextPipelineStatus } from "../applications/constants";
+import {
+  buildJobListingSnapshotFromApplication,
+  buildJobListingSnapshotFromListing,
+  jobSnapshotPersistPayload,
+  parseJobListingSnapshot,
+  resolveJobDescriptionText,
+  type ApplicationProfileSnapshotDto,
+  type JobListingSnapshot,
+} from "../applications/snapshots";
 import { ApiErrorCode } from "../api/errors";
 import { getDb } from "../db";
 import {
@@ -19,6 +30,7 @@ import {
   type ManualApplicationCreateInput,
 } from "../validators/applications";
 import { ApplicationsServiceError } from "./applications/errors";
+import { previewCoverLetterContent, type CoverLetterDto } from "./cover-letters";
 import type { JobListing } from "./jobs/types";
 
 export type ApplicationListItem = {
@@ -37,6 +49,8 @@ export type ApplicationListItem = {
   noteCount: number;
   interviewRound: number | null;
   viaRecruiter: boolean;
+  coverLetterPreview: string | null;
+  hasCoverLetter: boolean;
 };
 
 export type ApplicationNoteDto = {
@@ -44,6 +58,25 @@ export type ApplicationNoteDto = {
   body: string;
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type { JobListingSnapshot, ApplicationProfileSnapshotDto } from "../applications/snapshots";
+
+export type ApplicationBundleFlags = {
+  hasCoverLetter: boolean;
+  hasAiLetter: boolean;
+  isAiAssisted: boolean;
+  /** Stub until F10 — `null` means not enforced yet */
+  aiLettersRemaining: number | null;
+};
+
+export type ApplicationBundle = {
+  application: ApplicationDetail;
+  jobListingSnapshot: JobListingSnapshot | null;
+  jobDescriptionText: string | null;
+  profileSnapshot: ApplicationProfileSnapshotDto | null;
+  letter: CoverLetterDto | null;
+  flags: ApplicationBundleFlags;
 };
 
 export type ApplicationDetail = {
@@ -90,6 +123,117 @@ function isUniqueConstraintError(error: unknown): boolean {
 function buildManualSnapshot(input: ManualApplicationCreateInput): string | null {
   const description = input.description?.trim();
   return description || null;
+}
+
+function mapProfileSnapshot(row: ApplicationProfileSnapshot): ApplicationProfileSnapshotDto {
+  return {
+    applicationId: row.applicationId,
+    summary: row.summary,
+    experienceJson: row.experienceJson ?? [],
+    skills: row.skills,
+    educationJson: row.educationJson ?? [],
+    snapshotAt: row.snapshotAt,
+  };
+}
+
+async function writeProfileSnapshotFromUser(
+  applicationId: string,
+  userId: string,
+): Promise<ApplicationProfileSnapshotDto> {
+  const db = getDb();
+  const profile = await db.profile.findUnique({ where: { userId } });
+  const row = await db.applicationProfileSnapshot.upsert({
+    where: { applicationId },
+    create: {
+      applicationId,
+      summary: profile?.summary ?? null,
+      experienceJson: profile?.experienceJson ?? undefined,
+      skills: profile?.skills ?? [],
+      educationJson: profile?.educationJson ?? undefined,
+      snapshotAt: new Date(),
+    },
+    update: {
+      summary: profile?.summary ?? null,
+      experienceJson: profile?.experienceJson ?? undefined,
+      skills: profile?.skills ?? [],
+      educationJson: profile?.educationJson ?? undefined,
+      snapshotAt: new Date(),
+    },
+  });
+  return mapProfileSnapshot(row);
+}
+
+async function captureProfileSnapshot(
+  applicationId: string,
+  userId: string,
+): Promise<void> {
+  const db = getDb();
+  const existing = await db.applicationProfileSnapshot.findUnique({
+    where: { applicationId },
+  });
+  if (existing) return;
+  await writeProfileSnapshotFromUser(applicationId, userId);
+}
+
+export async function refreshProfileSnapshot(
+  userId: string,
+  applicationId: string,
+): Promise<ApplicationProfileSnapshotDto> {
+  await assertOwned(userId, applicationId);
+  return writeProfileSnapshotFromUser(applicationId, userId);
+}
+
+async function ensureJobSnapshotsPersisted(application: Application): Promise<Application> {
+  const stored = parseJobListingSnapshot(application.jobListingSnapshot);
+  const descriptionText = resolveJobDescriptionText(application);
+  if (stored && descriptionText) return application;
+
+  const snapshot =
+    stored ?? buildJobListingSnapshotFromApplication(application);
+  const text = descriptionText ?? application.jobDescriptionSnapshot?.trim() ?? null;
+  const db = getDb();
+
+  return db.application.update({
+    where: { id: application.id },
+    data: jobSnapshotPersistPayload(snapshot, text),
+  });
+}
+
+async function ensureProfileSnapshotForApplication(
+  applicationId: string,
+  userId: string,
+): Promise<ApplicationProfileSnapshotDto | null> {
+  const db = getDb();
+  let row = await db.applicationProfileSnapshot.findUnique({
+    where: { applicationId },
+  });
+  if (!row) {
+    await captureProfileSnapshot(applicationId, userId);
+    row = await db.applicationProfileSnapshot.findUnique({
+      where: { applicationId },
+    });
+  }
+  return row ? mapProfileSnapshot(row) : null;
+}
+
+function resolveJobListingSnapshotForRead(
+  application: Application,
+): JobListingSnapshot | null {
+  return (
+    parseJobListingSnapshot(application.jobListingSnapshot) ??
+    buildJobListingSnapshotFromApplication(application)
+  );
+}
+
+function buildBundleFlags(letter: CoverLetter | null): ApplicationBundleFlags {
+  const hasCoverLetter = Boolean(letter?.content?.trim());
+  const hasAiLetter = letter?.source === "AI";
+  return {
+    hasCoverLetter,
+    hasAiLetter,
+    isAiAssisted: hasAiLetter,
+    aiLettersRemaining: null,
+  };
 }
 
 function mapNote(note: ApplicationNote): ApplicationNoteDto {
@@ -168,13 +312,19 @@ export async function createFromJobListing(
   job: JobListing,
 ): Promise<Application> {
   const existing = await findByUserAndExternalId(userId, job.id);
-  if (existing) return existing;
+  if (existing) {
+    const hydrated = await ensureJobSnapshotsPersisted(existing);
+    await captureProfileSnapshot(hydrated.id, userId);
+    return hydrated;
+  }
 
   const db = getDb();
-  const snapshot = job.description?.trim() || null;
+  const listingSnapshot = buildJobListingSnapshotFromListing(job);
+  const descriptionText = job.description?.trim() || null;
+  const snapshotFields = jobSnapshotPersistPayload(listingSnapshot, descriptionText);
 
   try {
-    return await db.application.create({
+    const created = await db.application.create({
       data: {
         userId,
         jobExternalId: job.id,
@@ -182,14 +332,20 @@ export async function createFromJobListing(
         company: job.company,
         location: job.location || null,
         jobUrl: job.redirectUrl || null,
-        jobDescriptionSnapshot: snapshot,
         status: "DRAFT",
+        ...snapshotFields,
       },
     });
+    await captureProfileSnapshot(created.id, userId);
+    return created;
   } catch (error) {
     if (isUniqueConstraintError(error)) {
       const duplicate = await findByUserAndExternalId(userId, job.id);
-      if (duplicate) return duplicate;
+      if (duplicate) {
+        const hydrated = await ensureJobSnapshotsPersisted(duplicate);
+        await captureProfileSnapshot(hydrated.id, userId);
+        return hydrated;
+      }
     }
     throw error;
   }
@@ -201,8 +357,21 @@ export async function createManual(
 ): Promise<Application> {
   const parsed = manualApplicationCreateSchema.parse(input);
   const db = getDb();
+  const descriptionText = buildManualSnapshot(parsed);
+  const listingSnapshot: JobListingSnapshot = {
+    title: parsed.title,
+    company: parsed.company,
+    location: parsed.location?.trim() || null,
+    salaryText: null,
+    category: null,
+    contractType: null,
+    externalId: null,
+    redirectUrl: parsed.jobUrl?.trim() || null,
+    postedAt: null,
+    capturedAt: new Date().toISOString(),
+  };
 
-  return db.application.create({
+  const created = await db.application.create({
     data: {
       userId,
       title: parsed.title,
@@ -211,10 +380,12 @@ export async function createManual(
       source: parsed.source?.trim() || null,
       location: parsed.location?.trim() || null,
       appliedAt: parsed.appliedAt ?? null,
-      jobDescriptionSnapshot: buildManualSnapshot(parsed),
       status: parsed.appliedAt ? "APPLIED" : "DRAFT",
+      ...jobSnapshotPersistPayload(listingSnapshot, descriptionText),
     },
   });
+  await captureProfileSnapshot(created.id, userId);
+  return created;
 }
 
 export async function listByUser(userId: string): Promise<ApplicationListItem[]> {
@@ -238,26 +409,37 @@ export async function listByUser(userId: string): Promise<ApplicationListItem[]>
       jobExternalId: true,
       createdAt: true,
       _count: { select: { timelineNotes: true } },
+      coverLetters: {
+        take: 1,
+        select: { content: true, source: true },
+      },
     },
   });
 
-  return rows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    company: row.company,
-    status: row.status,
-    rejectionPhase: row.rejectionPhase,
-    location: row.location,
-    source: row.source,
-    jobUrl: row.jobUrl,
-    appliedAt: row.appliedAt,
-    interviewRound: row.interviewRound,
-    viaRecruiter: row.viaRecruiter,
-    updatedAt: row.updatedAt,
-    jobExternalId: row.jobExternalId,
-    createdAt: row.createdAt,
-    noteCount: row._count.timelineNotes,
-  }));
+  return rows.map((row) => {
+    const manualContent = row.coverLetters[0]?.content?.trim() ?? "";
+    return {
+      id: row.id,
+      title: row.title,
+      company: row.company,
+      status: row.status,
+      rejectionPhase: row.rejectionPhase,
+      location: row.location,
+      source: row.source,
+      jobUrl: row.jobUrl,
+      appliedAt: row.appliedAt,
+      interviewRound: row.interviewRound,
+      viaRecruiter: row.viaRecruiter,
+      updatedAt: row.updatedAt,
+      jobExternalId: row.jobExternalId,
+      createdAt: row.createdAt,
+      noteCount: row._count.timelineNotes,
+      coverLetterPreview: manualContent
+        ? previewCoverLetterContent(manualContent)
+        : null,
+      hasCoverLetter: Boolean(manualContent),
+    };
+  });
 }
 
 export async function getByIdForUser(
@@ -281,6 +463,73 @@ export async function getByIdForUser(
   }
 
   return mapDetail(application);
+}
+
+function mapCoverLetterDto(letter: CoverLetter): CoverLetterDto {
+  const citations = Array.isArray(letter.citationsJson)
+    ? (letter.citationsJson as { field?: string; excerpt?: string }[])
+        .map((item) => {
+          const field = typeof item.field === "string" ? item.field.trim() : "";
+          const excerpt = typeof item.excerpt === "string" ? item.excerpt.trim() : "";
+          if (!field || !excerpt) return null;
+          return { field, excerpt };
+        })
+        .filter((item): item is { field: string; excerpt: string } => item !== null)
+    : [];
+
+  return {
+    id: letter.id,
+    applicationId: letter.applicationId,
+    content: letter.content,
+    source: letter.source,
+    citations,
+    createdAt: letter.createdAt,
+    updatedAt: letter.updatedAt,
+  };
+}
+
+export async function getBundleForUser(
+  userId: string,
+  applicationId: string,
+): Promise<ApplicationBundle> {
+  const db = getDb();
+  const application = await db.application.findFirst({
+    where: { id: applicationId, userId },
+    include: {
+      timelineNotes: { orderBy: { createdAt: "desc" } },
+      coverLetters: true,
+      profileSnapshot: true,
+    },
+  });
+
+  if (!application) {
+    throw new ApplicationsServiceError(
+      ApiErrorCode.NOT_FOUND,
+      "Application not found",
+      404,
+    );
+  }
+
+  const hydrated = await ensureJobSnapshotsPersisted(application);
+  const profileSnapshot = application.profileSnapshot
+    ? mapProfileSnapshot(application.profileSnapshot)
+    : await ensureProfileSnapshotForApplication(applicationId, userId);
+
+  const jobListingSnapshot = resolveJobListingSnapshotForRead(hydrated);
+  const jobDescriptionText = resolveJobDescriptionText(hydrated);
+  const letterRow = application.coverLetters[0] ?? null;
+
+  return {
+    application: mapDetail({
+      ...hydrated,
+      timelineNotes: application.timelineNotes,
+    }),
+    jobListingSnapshot,
+    jobDescriptionText,
+    profileSnapshot,
+    letter: letterRow ? mapCoverLetterDto(letterRow) : null,
+    flags: buildBundleFlags(letterRow),
+  };
 }
 
 export async function update(
@@ -548,6 +797,8 @@ export const applicationsService = {
   createManual,
   listByUser,
   getByIdForUser,
+  getBundleForUser,
+  refreshProfileSnapshot,
   update,
   advanceStage,
   markRejected,

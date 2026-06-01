@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import {
   applicationsService,
+  coverLettersService,
   PIPELINE_STATUS_OPTIONS,
   savedJobSearchesService,
   usersService,
@@ -23,7 +24,13 @@ async function requireUserId(): Promise<string> {
 
 export async function getApplicationDetailAction(applicationId: string) {
   const userId = await requireUserId()
-  return applicationsService.getByIdForUser(userId, applicationId)
+  const bundle = await applicationsService.getBundleForUser(userId, applicationId)
+  return bundle.application
+}
+
+export async function getApplicationBundleAction(applicationId: string) {
+  const userId = await requireUserId()
+  return applicationsService.getBundleForUser(userId, applicationId)
 }
 
 export async function updateApplicationStatusAction(
@@ -98,6 +105,14 @@ export async function addApplicationNoteAction(applicationId: string, body: stri
   await applicationsService.createNote(userId, applicationId, { body })
   revalidatePath("/dashboard")
   revalidatePath(`/applications/${applicationId}`)
+}
+
+export async function saveManualCoverLetterAction(applicationId: string, content: string) {
+  const userId = await requireUserId()
+  const saved = await coverLettersService.upsertLetter(userId, applicationId, { content })
+  revalidatePath("/dashboard")
+  revalidatePath(`/applications/${applicationId}`)
+  return saved
 }
 
 export async function updateApplicationNoteAction(

@@ -31,9 +31,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="bg-background">
+    <html lang="en" className="h-dvh bg-background">
       <body
-        className={`${dmSans.variable} ${dmSerif.variable} flex min-h-screen flex-col font-sans antialiased`}
+        className={`${dmSans.variable} ${dmSerif.variable} flex h-dvh flex-col overflow-hidden font-sans antialiased`}
       >
         <AppShell>{children}</AppShell>
         <AppToaster />

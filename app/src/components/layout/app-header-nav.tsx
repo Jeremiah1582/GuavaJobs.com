@@ -23,9 +23,12 @@ export function AppHeaderNav({ signedIn }: AppHeaderNavProps) {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50)
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
+    const scrollRoot =
+      document.getElementById("app-main-scroll") ?? document.documentElement
+    const handleScroll = () => setScrolled(scrollRoot.scrollTop > 50)
+    handleScroll()
+    scrollRoot.addEventListener("scroll", handleScroll, { passive: true })
+    return () => scrollRoot.removeEventListener("scroll", handleScroll)
   }, [])
 
   return (

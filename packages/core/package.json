@@ -15,6 +15,8 @@
     "db:push": "node scripts/prisma-with-app-env.mjs db push",
     "db:migrate:dev": "node scripts/prisma-with-app-env.mjs migrate dev",
     "db:migrate:deploy": "node scripts/prisma-with-app-env.mjs migrate deploy",
+    "db:migrate:status": "node scripts/prisma-with-app-env.mjs migrate status",
+    "db:migrate:resolve": "node scripts/prisma-with-app-env.mjs migrate resolve",
     "db:studio": "node scripts/prisma-with-app-env.mjs studio",
     "db:seed": "node scripts/seed.mjs"
   },
@@ -25,6 +27,7 @@
   "dependencies": {
     "@prisma/client": "^6.9.0",
     "@supabase/supabase-js": "^2.49.8",
+    "openai": "^4.104.0",
     "zod": "3.25.76"
   },
   "devDependencies": {

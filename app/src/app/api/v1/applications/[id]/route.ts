@@ -15,7 +15,7 @@ export const GET = withErrorHandler(async (_request, context) => {
   await usersService.ensureUser(session)
 
   try {
-    const data = await applicationsService.getByIdForUser(session.id, id)
+    const data = await applicationsService.getBundleForUser(session.id, id)
     return jsonSuccess(data)
   } catch (err) {
     const handled = handleServiceError(err)

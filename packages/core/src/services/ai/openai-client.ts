@@ -1,0 +1,118 @@
+import { ApiErrorCode } from "../../api/errors";
+import type { ApplicationProfileSnapshotDto } from "../../applications/snapshots";
+import { CoverLettersServiceError } from "../cover-letters/errors";
+import {
+  AiClientError,
+  chatCompletion,
+} from "./client";
+import {
+  buildCoverLetterUserPrompt,
+  COVER_LETTER_SYSTEM_PROMPT,
+  parseCoverLetterGeneration,
+} from "./cover-letter-prompt";
+import type { JobListingSnapshot } from "../../applications/snapshots";
+
+export type GenerateCoverLetterInput = {
+  jobTitle: string;
+  company: string;
+  jobDescription: string;
+  profile: ApplicationProfileSnapshotDto;
+  jobListing?: JobListingSnapshot;
+  existingLetter?: string | null;
+  adaptExisting?: boolean;
+};
+
+export type GenerateCoverLetterAiResult = {
+  content: string;
+  citations: { field: string; excerpt: string }[];
+};
+
+export function profileSnapshotToPromptText(
+  snapshot: ApplicationProfileSnapshotDto,
+): string {
+  return JSON.stringify(
+    {
+      summary: snapshot.summary,
+      experience: snapshot.experienceJson,
+      skills: snapshot.skills,
+      education: snapshot.educationJson,
+      snapshotAt: snapshot.snapshotAt.toISOString(),
+    },
+    null,
+    2,
+  );
+}
+
+function mapAiError(error: AiClientError): CoverLettersServiceError {
+  switch (error.code) {
+    case "MISSING_API_KEY":
+      return new CoverLettersServiceError(
+        ApiErrorCode.SERVICE_UNAVAILABLE,
+        error.message,
+        503,
+        "AI cover letters are not available right now.",
+      );
+    case "TIMEOUT":
+      return new CoverLettersServiceError(
+        ApiErrorCode.SERVICE_UNAVAILABLE,
+        error.message,
+        503,
+        "Generation took too long. Please try again.",
+      );
+    case "MODERATION":
+      return new CoverLettersServiceError(
+        ApiErrorCode.VALIDATION_ERROR,
+        error.message,
+        400,
+        "We could not generate a letter for this content. Edit your profile and try again.",
+      );
+    default:
+      return new CoverLettersServiceError(
+        ApiErrorCode.SERVICE_UNAVAILABLE,
+        error.message,
+        503,
+        "AI provider error. Please try again shortly.",
+      );
+  }
+}
+
+export async function generateCoverLetterWithOpenAI(
+  input: GenerateCoverLetterInput,
+): Promise<GenerateCoverLetterAiResult> {
+  const jobListing: JobListingSnapshot = input.jobListing ?? {
+    title: input.jobTitle,
+    company: input.company,
+    location: null,
+    salaryText: null,
+    category: null,
+    contractType: null,
+    externalId: null,
+    redirectUrl: null,
+    postedAt: null,
+    capturedAt: new Date().toISOString(),
+  };
+
+  const userPrompt = buildCoverLetterUserPrompt({
+    jobListing,
+    jobDescriptionText: input.jobDescription,
+    profile: input.profile,
+    existingLetter: input.existingLetter,
+    adaptExisting: input.adaptExisting,
+  });
+
+  try {
+    const raw = await chatCompletion({
+      messages: [
+        { role: "system", content: COVER_LETTER_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      responseFormat: "json_object",
+    });
+    return parseCoverLetterGeneration(raw);
+  } catch (error) {
+    if (error instanceof AiClientError) {
+      throw mapAiError(error);
+    }
+    throw error;
+  }
+}

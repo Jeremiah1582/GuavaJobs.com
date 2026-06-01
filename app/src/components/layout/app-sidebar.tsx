@@ -59,7 +59,7 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "hidden shrink-0 flex-col border-r border-border bg-card transition-[width] duration-200 md:flex",
+        "hidden h-full shrink-0 flex-col overflow-hidden border-r border-border bg-card transition-[width] duration-200 md:flex",
         collapsed ? "w-16" : "w-64",
       )}
     >
@@ -78,7 +78,7 @@ export function AppSidebar() {
           )}
         </Button>
       </div>
-      <nav className="flex flex-1 flex-col gap-1 p-2">
+      <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain p-2">
         {navItems.map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`)

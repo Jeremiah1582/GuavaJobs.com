@@ -1,4 +1,4 @@
-created_date: 2026-05-30 19:00:00, updated_at: 2026-05-31 10:30:00
+created_date: 2026-05-30 19:00:00, updated_at: 2026-06-01 20:00:00
 
 # GuavaJobs — Architecture
 
@@ -78,6 +78,59 @@ Shared backend — imported by **`app/` only** (not `landingpage/`):
 
 ---
 
+## Application aggregate model
+
+The **application** is the aggregate root for everything about one job pursuit. The UI and API expose a single **bundle** per application; persistence uses a normalized schema with **immutable snapshots** where history and AI grounding matter.
+
+### Conceptual structure
+
+```mermaid
+erDiagram
+  User ||--o{ Application : owns
+  User ||--o| Profile : live
+  Application ||--o{ ApplicationNote : has
+  Application ||--o{ CoverLetter : has
+  Application ||--o| ApplicationJobSnapshot : captures
+  Application ||--o| ApplicationProfileSnapshot : captures
+  Application ||--o| ApplicationCvArtifact : optional
+```
+
+| Piece | Storage pattern | Purpose |
+|-------|-----------------|--------|
+| **Pipeline & tracker fields** | Columns on `Application` | Status, rejection, interview, denormalized title/company for fast list views. |
+| **Job listing** | `jobListingSnapshot` (JSON) + `jobDescriptionText` (text) on application or 1:1 child | What the user applied to **at track time**; Adzuna listings change or disappear. |
+| **Live profile** | `Profile` (1:1 user) | Editable “who I am now”. |
+| **Profile for AI** | `ApplicationProfileSnapshot` (1:1 or versioned) | Immutable facts the model may cite; created at **track** (recommended) or first AI generate. |
+| **Cover letters** | `CoverLetter` — **one row per application** (`@@unique([applicationId])`); `source` MANUAL \| AI; `citationsJson` for grounding; AI regenerate **updates** the same row (adapt mode). |
+| **Notes** | `ApplicationNote` timeline | Interview prep, follow-ups—prefer over legacy `Application.notes` text column. |
+| **CV (V2)** | `ApplicationCvArtifact` | File reference + optional extracted text for that application only. |
+| **Job category** | Enum or string on `Application` | Simple V2 taxonomy; V3 matching uses richer categories. |
+
+### Design principles
+
+1. **Snapshots over live FKs** — Do not rely on `jobExternalId` + live Adzuna fetch or live `Profile` alone for AI or audit; store what was true when the user pursued the role.
+2. **No god table** — Do not put letter bodies, full profile JSON, and all notes into `Application` columns; keep children and snapshot tables.
+3. **Optional job cache** — A shared `JobListing` table keyed by external id may dedupe fetches later; each `Application` still keeps its **own** snapshot so cache updates do not rewrite history.
+4. **Service boundary** — `applicationsService.getBundleForUser(userId, applicationId)` returns `ApplicationBundle` (application + snapshots + manual letter + notes + flags); list endpoints stay slim.
+
+### Phased implementation (see master plan **FA**)
+
+| Phase | Deliverable | When |
+|-------|-------------|------|
+| **FA.1** | Structured job snapshot + canonical JD text at track | Before / with F9 |
+| **FA.2** | `ApplicationProfileSnapshot` at track (or explicit refresh) | Required for F9 grounding |
+| **FA.3** | `ApplicationBundle` DTO + `GET /api/v1/applications/:id` returns bundle | F9 / detail UI |
+| **FA.4** | `jobCategory` / `employmentType` on application | V2 |
+| **FA.5** | Deprecate legacy `Application.notes`; notes API only | Cleanup |
+| **FA.6** | Unified application detail UI (one screen) | V2 |
+| **FA.7** | `ApplicationCvArtifact` per application | V2 CV generation |
+
+### Current schema (V1 baseline)
+
+Today: `Application` holds pipeline + partial job fields + `jobDescriptionSnapshot`; `CoverLetter` and `ApplicationNote` are children; `Profile` is live-only. FA migrations evolve toward the model above without blocking F8 manual letters.
+
+---
+
 ## API-first rules (V1 onward)
 
 1. **Every backend feature** gets a service in `packages/core` **before** (or alongside) UI.
@@ -94,7 +147,8 @@ Shared backend — imported by **`app/` only** (not `landingpage/`):
 | GET/POST | `/api/v1/jobs` | Search/list jobs (Adzuna proxy) |
 | GET | `/api/v1/jobs/:id` | Job detail |
 | GET/PATCH | `/api/v1/profile` | User profile |
-| GET/POST/PATCH/DELETE | `/api/v1/applications` | Application tracker |
+| GET/POST/PATCH/DELETE | `/api/v1/applications` | Application tracker (list / CRUD) |
+| GET | `/api/v1/applications/:id` | Application detail; **evolves to `ApplicationBundle`** (FA.3) |
 | GET/POST/PATCH | `/api/v1/applications/:id/cover-letters` | Manual + AI letters |
 | POST | `/api/v1/cover-letters/generate` | AI generation (quota enforced) |
 | GET | `/api/v1/usage` | AI quota remaining |
@@ -212,8 +266,10 @@ CORS: Public API routes allow configured partner origins when B2B launches; defa
 
 1. User lands on **guavajobs.com** (`landingpage/`).
 2. Clicks **Browse jobs** → `app.guavajobs.com/jobs` (public, no auth).
-3. Clicks **Track this job** → sign-up on **app** → draft application created via `applicationService`.
-4. Bootcamp HR tool (later) → `POST app.guavajobs.com/api/v1/...` with API key.
+3. Clicks **Track this job** → sign-up on **app** → draft **application** created via `applicationsService` with **job snapshot** (FA.1).
+3. User opens job on **app** `/jobs` or `/jobs/[id]` → **Generate cover letter with AI** (above job description) → merge animation → `POST /api/v1/cover-letters/generate` or server action → redirect `/applications/:id?generated=1`.
+4. User edits profile, refines letter on application hub (grounding panel + CV stub); manual save always free.
+5. Bootcamp HR tool (later) → `GET /api/v1/applications/:id` bundle or scoped partner routes with API key.
 
 ---
 
@@ -224,3 +280,4 @@ CORS: Public API routes allow configured partner origins when B2B launches; defa
 | 2026-05-30 | Initial architecture: dual Next.js apps, packages/core, API-first V1 surface |
 | 2026-05-30 | Renamed packages to lowercase: `landingpage/`, `app/` |
 | 2026-05-31 | Documented API JSON contract (`@guavajobs/core/api`) |
+| 2026-06-01 | Application aggregate: snapshots, bundle DTO, FA phases; ER diagram and API evolution |

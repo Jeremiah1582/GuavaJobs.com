@@ -1,4 +1,4 @@
-created_date: 2026-05-30 12:00:00, updated_at: 2026-05-30 19:30:00
+created_date: 2026-05-30 12:00:00, updated_at: 2026-06-01 22:00:00
 
 # GuavaJobs — Product Vision & Roadmap
 
@@ -6,7 +6,7 @@ created_date: 2026-05-30 12:00:00, updated_at: 2026-05-30 19:30:00
 
 ## North star
 
-**GuavaJobs** is the **hub where people track job applications and career progression**: one place for every role you pursue, hiring stage, notes, and outcomes—not scattered across tabs, docs, and spreadsheets. **Grounded** AI cover letters (only facts from the user’s profile) support applications; **manual** cover letter writing and editing are always free.
+**GuavaJobs** is the **hub where people track job applications and career progression**: one place for every role you pursue, hiring stage, notes, and outcomes—not scattered across tabs, docs, and spreadsheets. Each **application** is the unit of work—one role at one company—with **everything for that pursuit** in one place: job details (as they were when tracked), cover letter(s), notes, hiring stage, and (over time) CV artifact and **profile snapshot** used for grounded AI. **Grounded** AI cover letters (only facts from the snapshot/profile) support applications; **manual** cover letter writing and editing are always free.
 
 **Long-term vision (post-V4):** Help people structure their careers (when to move on, long-term path)—**not** in scope until the core job-search loop proves value and revenue.
 
@@ -26,7 +26,27 @@ Two **separate Next.js apps** in one monorepo; all product backend logic is **AP
 
 **Integration path:** External clients call `https://app.guavajobs.com/api/v1/...` (partner API keys in a later phase). App UI uses the same `@guavajobs/core` services—not duplicate logic.
 
-See [`architecture.md`](./architecture.md) for full structure and planned API routes.
+See [`architecture.md`](./architecture.md) for full structure, planned API routes, and the **Application aggregate** data model.
+
+---
+
+## Application as the product hub
+
+Users think in **applications** (“this junior dev role at Acme”), not in disconnected rows, files, and profile tabs. The data model treats **`Application` as the aggregate root**:
+
+| Concern | Approach |
+|---------|----------|
+| **Live profile** | `Profile` on `User` — source of truth for “who I am now”. |
+| **Per-application artifacts** | Immutable **snapshots** and child records so history does not change when the user edits profile or Adzuna updates a listing. |
+| **Job listing** | Structured **job snapshot** + full description text at track time (not only a live Adzuna id). |
+| **Cover letters** | **One** `CoverLetter` per application (AI or manual); generate from **job board** with merge animation → edit on application hub; grounded citations stored on the letter. |
+| **Notes** | `ApplicationNote` timeline (not a single blob on the application row). |
+| **CV (V2+)** | Per-application **CV artifact** (file ref + optional extracted text) — the version used for that role. |
+| **Job type / category (V2+)** | Simple taxonomy on the application (e.g. internship, junior, bootcamp grad); full matching ontology in V3. |
+
+**Product promise:** One application detail view shows pipeline state, job snapshot, letters, notes, grounding context, and documents—backed by a single **`ApplicationBundle`** from the API. See [`architecture.md`](./architecture.md) and **FA** phases in [`masterBuildPlan.md`](./masterBuildPlan.md).
+
+**Design rules:** Snapshots over live foreign keys for job and profile; normalize children (letters, notes, CV)—avoid one wide “god table”; optional shared `JobListing` cache later without mutating past applications.
 
 ---
 
@@ -81,8 +101,8 @@ Unemployment and application fatigue are rising. Job search is too time-consumin
 | **Public job board** | **`app/`** on **app.guavajobs.com/jobs** — search and job detail powered by **Adzuna** (no account required). Also exposed via **`GET /api/v1/jobs`**. |
 | **Sign-up gate** | Browsing jobs is public on App. **Sign up or sign in required** to track, generate AI letters, save profile, or open dashboard. **Track / Apply** → auth → draft application. |
 | **User profile** | Create/edit profile after sign-in: experience, skills, education, summary. Short **quiz** on what matters in the next job (used later for matching; collected in V1). Optional: upload CV file or paste existing CV/LinkedIn **text** (user-provided, no scraping). |
-| **Cover letters** | **Manual:** write and edit cover letters in-app—**always free**, unlimited, all tiers. **AI:** reads **job description + user profile**; generates letter in selected tone (**Professional** default). **Strict rule:** AI may **only** use information from the profile—no invented employers, dates, or skills. UI should make grounding obvious (e.g. which profile facts were used). Freemium: **5 AI letters per month** (resets monthly; no credit card). |
-| **Application tracker** | **Unlimited on free tier**—core of the product. Each tracked job gets a row; link to cover letter(s). User confirms **applied or not** and sets **hiring stage**. Per-row **notes** (interview prep, lessons learned). **V1 tracker:** simplified status set (enough to be useful; full colour system in V2). |
+| **Cover letters** | **One letter per application** (manual or AI on the same row). **AI:** primary CTA on **job detail** (above job description) → merge animation → `/applications/[id]` to review/edit; regenerate adapts existing text. Grounded on **job + profile snapshots** at track. **Manual** edit always free. Freemium: **5 AI letters per month** (resets monthly; no credit card). |
+| **Application tracker** | **Unlimited on free tier**—core of the product. Each tracked job is an **application** aggregate: pipeline status, **job snapshot**, cover letter(s), note timeline, link to full detail. User confirms **applied or not** and sets **hiring stage**. **V1:** simplified status set + manual letters; **FA phases** add structured job snapshot and bundle API before/during F9; **V2:** CV per application, richer detail UI, full colour system. |
 | **Design** | Modern, clean UI (Next.js + Tailwind) on **both** apps; mobile-friendly; strong empty states. |
 | **Auth & accounts** | **App only** — sign up / sign in with **no payment details**; GDPR-aware delete account. |
 | **Backend / API** | All features implemented in **`packages/core`** services + **`/api/v1/*`** routes on App (for UI parity and future B2B integrations). |
@@ -100,7 +120,8 @@ Unemployment and application fatigue are rising. Job search is too time-consumin
 
 | Area | In scope |
 |------|----------|
-| **CV generation** | Same grounding rules as cover letters: job description + profile only, no hallucination; edit and export. |
+| **CV generation** | Per-application **CV artifact** + grounded generation (job snapshot + profile snapshot); same anti-hallucination rules as cover letters; edit and export. |
+| **Application hub (UI)** | Single **application detail** surface: job snapshot, letters, notes, CV, profile snapshot used for AI, category—system of record for each pursuit. |
 | **Profile enrichment** | Upload CV or profile URL; **AI extracts** structured profile fields (user reviews before save). |
 | **Application tracker (full)** | Full colour/status model, e.g.: Gray = draft / not confirmed applied; Yellow = waiting for response; Red = rejected (no interview); Light blue shades = 1st / 2nd / 3rd interview scheduled; Green = offer made. **Red text** on blue/green row = fell through at that stage. **Blue text** on green row = offer accepted. Notes on every row (carried from V1). |
 | **Branded cover letters (V1.5 → V2)** | Subtle **company logo** and brand colours on generated cover letters. |
@@ -201,8 +222,8 @@ Aligned to what **exists** in each version—don’t sell V3 features on a V1 la
 
 | Version | Theme | Core deliverables |
 |---------|--------|-------------------|
-| **V1** | Career hub | **guavajobs.com** marketing + **app.guavajobs.com** jobs/tracker/letters/API |
-| **V2** | Documents | CV generation, full tracker colours, CV upload/AI parse, branded cover letters |
+| **V1** | Career hub | Marketing + jobs/tracker/letters/API; application aggregate **foundation** (FA) + F9 AI |
+| **V2** | Documents | CV per application, unified application view, full tracker colours, profile parse, branded letters |
 | **V3** | Match & coach | Categories, matching score, notifications, career coaching, recruiter posts, themed CVs |
 | **V4** | Platform & AI | Native apply, auto-tracking, history-based AI assistant |
 
@@ -217,3 +238,4 @@ Aligned to what **exists** in each version—don’t sell V3 features on a V1 la
 | 2026-05-30 | Linked to masterBuildPlan.md |
 | 2026-05-30 | Dual-app architecture (landingpage/ + app/ + packages/core), API-first backend |
 | 2026-05-30 | Renamed app folders to lowercase: landingpage/, app/ |
+| 2026-06-01 | Application aggregate hub: snapshots, bundle API, FA phases; aligns F9 grounding and V2 CV |

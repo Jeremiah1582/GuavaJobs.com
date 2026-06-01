@@ -45,6 +45,17 @@ function hasQuiz(value: unknown): boolean {
   return Boolean(quiz.roleType || quiz.workMode || (Array.isArray(quiz.priorities) && quiz.priorities.length > 0));
 }
 
+/** Minimum data required before AI cover letter generation (F9). */
+export function isProfileReadyForAi(profile: Profile | null): boolean {
+  if (!profile) return false;
+  const hasSummary = Boolean(profile.summary?.trim());
+  const hasExperience =
+    Array.isArray(profile.experienceJson) &&
+    (profile.experienceJson as unknown[]).length > 0;
+  const hasSkills = profile.skills.length > 0;
+  return hasSummary && (hasExperience || hasSkills);
+}
+
 export function computeCompleteness(profile: Profile): ProfileCompleteness {
   const checks: Record<string, boolean> = {
     summary: Boolean(profile.summary?.trim()),

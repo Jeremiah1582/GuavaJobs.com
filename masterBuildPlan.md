@@ -1,4 +1,4 @@
-created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 14:00:00
+created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 22:00:00
 
 # GuavaJobs — Master Build Plan
 
@@ -40,7 +40,8 @@ created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 14:00:00
 6. User profile & quiz + /api/v1/profile          (F6) — app/
 7. Application tracker + /api/v1/applications     (F7) — app/
 8. Manual cover letters + API                     (F8) — app/
-9. AI cover letters + API                         (F9) — app/
+8b. Application aggregate foundation              (FA) — core + app/ (before F9)
+9. AI cover letters + API                         (F9) — app/ (requires FA.1–FA.2)
 10. AI usage limits + /api/v1/usage               (F10) — app/
 11. Payments + webhooks                           (F11) — app/
 12. Compliance (split) + launch prep              (F12) — both apps
@@ -170,30 +171,53 @@ created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 14:00:00
 
 | Status | Phase | Scope |
 |--------|-------|-------|
-| - [ ] | **F8.1** | DB model + **`coverLetterService`**: applicationId, content, source (`manual` \| `ai`), timestamps. |
-| - [ ] | **F8.2** | Rich text or textarea editor on application detail — create/edit manual letter. |
-| - [ ] | **F8.3** | **Always free, unlimited** — no quota check on manual save. |
-| - [ ] | **F8.4** | Link letter to application; show in tracker row preview. |
-| - [ ] | **F8.5** | Copy to clipboard + download as `.txt` or `.pdf` (minimal export). |
-| - [ ] | **F8.6** | Version history optional—skip for V1 unless trivial; else single editable doc. |
-| - [ ] | **F8.7** | **`GET/POST/PATCH /api/v1/applications/:id/cover-letters`** — manual CRUD, no quota. |
+| - [x] | **F8.1** | DB model + **`coverLetterService`**: applicationId, content, source (`manual` \| `ai`), timestamps. |
+| - [x] | **F8.2** | Rich text or textarea editor on application detail — create/edit manual letter. |
+| - [x] | **F8.3** | **Always free, unlimited** — no quota check on manual save. |
+| - [x] | **F8.4** | Link letter to application; show in tracker row preview. |
+| - [x] | **F8.5** | Copy to clipboard + download as `.txt` or `.pdf` (minimal export). |
+| - [x] | **F8.6** | Version history optional—skip for V1 unless trivial; else single editable doc. |
+| - [x] | **F8.7** | **`GET/POST/PATCH /api/v1/applications/:id/cover-letters`** — manual CRUD, no quota. |
+
+**F8 execution notes:** Superseded by **F9.0** — one letter row per application (AI replaces content in-place; manual save updates same row). Migration `20260601180000_cover_letters` + `20260601190000_application_snapshots_single_letter` — see [DATABASE_BASELINE.md](packages/core/docs/DATABASE_BASELINE.md).
+
+---
+
+### FA — Application aggregate foundation (cross-cutting)
+
+**Goal:** Evolve `Application` into the **hub** for one job pursuit—snapshots + child entities + one bundle API—without a single “god table”. Spec: [`architecture.md`](./architecture.md) · [`projectVision.md`](./projectVision.md) (Application as hub).
+
+| Status | Phase | Scope |
+|--------|-------|-------|
+| - [x] | **FA.1** | **Job snapshot at track:** `jobListingSnapshot` (JSON: title, company, location, salary, external id, url, posted date, etc.) + canonical `jobDescriptionText`; populate from Adzuna on track/manual create; backfill from existing columns on read where empty. |
+| - [x] | **FA.2** | **`ApplicationProfileSnapshot`:** immutable copy of profile fields used for AI (summary, experience, skills, education) — create at **track** (recommended) or on first AI generate; optional “Refresh from profile” with user confirm. |
+| - [x] | **FA.3** | **`ApplicationBundle` DTO** + `applicationsService.getBundleForUser`; `GET /api/v1/applications/:id` returns bundle (application, job snapshot, profile snapshot, manual letter, notes, flags). |
+| - [ ] | **FA.4** | **`jobCategory` / `employmentType`** on application (simple enum + optional free text); UI on detail + filter stub on tracker. |
+| - [ ] | **FA.5** | **Notes cleanup:** stop writing `Application.notes` string; tracker/detail use `ApplicationNote` only; migration to drop column when safe. |
+| - [x] | **FA.6** | **Unified application detail UI:** one `/applications/[id]` layout—pipeline, job snapshot, letters, notes, grounding panel placeholder, link to profile. |
+| - [ ] | **FA.7** | **`ApplicationCvArtifact` (V2 prep):** per-application CV file ref + optional extracted text; wire in V2 CV generation. |
+
+**FA execution notes:** Snapshots over live Adzuna/Profile for history and F9 grounding. Keep `CoverLetter` and `ApplicationNote` as children. FA.1–FA.2 are **prerequisites for F9**; FA.6–FA.7 align with V2 documents.
 
 ---
 
 ### F9 — AI cover letters (`app/` + API, grounded)
 
+**Depends on:** FA.1 (JD snapshot), FA.2 (profile snapshot), FA.3 recommended (bundle for detail UI).
+
 | Status | Phase | Scope |
 |--------|-------|-------|
-| - [ ] | **F9.1** | AI provider in **`packages/core`** (server-only); env secrets on App deploy. |
-| - [ ] | **F9.2** | **`coverLetterService.generate`**: job description + profile → Professional tone letter. |
-| - [ ] | **F9.3** | **Grounding rule:** forbid facts not in profile; return structured citations from service. |
-| - [ ] | **F9.4** | UI: “Generate with AI” on application detail; loading state; editable result. |
-| - [ ] | **F9.5** | **Grounding panel:** show which profile bullets/dates were used (anti-hallucination UX). |
-| - [ ] | **F9.6** | Save AI output as `CoverLetter` with `source: ai`; user can edit after generation (still free). |
-| - [ ] | **F9.7** | Regenerate flow (counts against quota—see F10). |
-| - [ ] | **F9.8** | Error handling: AI timeout, empty profile, content moderation failures. |
-| - [ ] | **F9.9** | Transparent **AI-assisted** label (EU AI Act hygiene). |
-| - [ ] | **F9.10** | **`POST /api/v1/cover-letters/generate`** — auth + quota; same service as UI. |
+| - [x] | **F9.0** | One `CoverLetter` per `applicationId` (unique); migration `20260601190000_application_snapshots_single_letter`. |
+| - [x] | **F9.1** | AI provider in **`packages/core`** (server-only); env secrets on App deploy. |
+| - [x] | **F9.2** | **`coverLettersService.generate`**: `jobDescriptionText` + **profile snapshot** → Professional tone letter. |
+| - [x] | **F9.3** | **Grounding rule:** forbid facts not in profile snapshot; return structured citations from service. |
+| - [x] | **F9.4** | Job board **Generate with AI** above job description; `CoverLetterMergeAnimation`; redirect to application hub. |
+| - [x] | **F9.5** | **Grounding panel** on `/applications/[id]` from `citationsJson`. |
+| - [x] | **F9.6** | Single `CoverLetter` per application; AI replaces manual row; editable after generate. |
+| - [x] | **F9.7** | Regenerate adapts existing letter (job board + application page); quota stub until F10. |
+| - [x] | **F9.8** | Error handling: profile incomplete, missing JD, AI timeout, provider errors. |
+| - [x] | **F9.9** | **AI-assisted** label on editor. |
+| - [x] | **F9.10** | **`POST /api/v1/cover-letters/generate`** — auth + quota; same service as UI. |
 
 ---
 
@@ -251,12 +275,13 @@ created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 14:00:00
 | F5 Sign-up gate | 6 | 6/6 |
 | F6 Profile & quiz + API | 9 | 9/9 |
 | F7 Application tracker + API | 10 | 10/10 |
-| F8 Manual cover letters + API | 7 | 0/7 |
-| F9 AI cover letters + API | 10 | 0/10 |
+| F8 Manual cover letters + API | 7 | 7/7 |
+| FA Application aggregate | 7 | 4/7 |
+| F9 AI cover letters + API | 10 | 10/10 |
 | F10 AI usage limits + API | 7 | 0/7 |
 | F11 Payments + API | 6 | 0/6 |
 | F12 Compliance & launch | 9 | 0/9 |
-| **V1 total** | **98** | **59/98** |
+| **V1 total** | **105** | **80/105** |
 
 ---
 
@@ -265,7 +290,7 @@ created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 14:00:00
 *Expand each feature into full phases when V1 is live. Phase hints only.*
 
 ### V2-F1 — CV generation (AI, grounded)
-`Schema → prompt (JD + profile) → editor → export PDF → quota (Starter 30/mo) → grounding panel reuse from F9`
+`ApplicationCvArtifact (FA.7) → prompt (job snapshot + profile snapshot) → editor → export PDF → quota (Starter 30/mo) → grounding panel reuse from F9`
 
 ### V2-F2 — Profile enrichment (AI parse)
 `Upload CV / URL → extract structured fields → user review screen → merge into profile → error on low confidence`
@@ -331,14 +356,18 @@ created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 14:00:00
 
 ```mermaid
 flowchart LR
-  V1[V1 Hub + letters] --> V2[V2 CV + colours]
+  V1[V1 Hub + letters] --> FA[FA Application aggregate]
+  FA --> F9[F9 AI letters]
+  F9 --> V2[V2 CV + colours]
   V2 --> V3[V3 Match + recruiters]
   V3 --> V4[V4 Apply + assistant]
 ```
 
 | Dependency | Note |
 |------------|------|
-| V2 CV generation | Requires V1 profile + AI grounding pipeline |
+| F9 AI letters | Requires FA.1 job snapshot + FA.2 profile snapshot |
+| V2 CV generation | Requires FA.7 CV artifact + F9 grounding pipeline |
+| V2 unified application UI | FA.6 bundle + detail layout |
 | V2 full tracker colours | Migrates V1 simplified statuses |
 | V3 matching | Requires V1 quiz + V2 enriched profile |
 | V3 recruiter listings | Requires V1 public job board patterns |
@@ -349,20 +378,26 @@ flowchart LR
 ## Progress snapshot
 
 **Last updated:** 2026-06-01  
-**Current focus:** F8 — Manual cover letters (+ job board UX polish complete)  
-**V1 phases complete:** 59 / 98  
+**Current focus:** F10 — AI usage limits (F9 + FA.1–FA.3 complete)  
+**V1 phases complete:** 80 / 105  
 **F1 foundation:** 10 / 10 complete  
 **F2 auth:** 7 / 7 complete  
 **F3 landing:** 7 / 7 complete  
 **F4 job board:** 10 / 10 complete  
 **F5 sign-up gate:** 6 / 6 complete  
 **F6 profile & quiz:** 9 / 9 complete  
-**F7 application tracker:** 10 / 10 complete
+**F7 application tracker:** 10 / 10 complete  
+**F8 manual cover letters:** 7 / 7 complete  
+**FA application aggregate:** 4 / 7 complete (FA.1–FA.3, FA.6)  
+**F9 AI cover letters:** 10 / 10 complete
 
 ### Quick log (optional)
 
 | Date | Completed | Notes |
 |------|-----------|-------|
+| 2026-06-01 | F9 + FA | AI cover letters from job board, merge animation, bundle API, single letter per app, grounding panel |
+| 2026-06-01 | Planning | Application aggregate (FA): snapshots, bundle API, phased before F9 — vision + architecture + master plan |
+| 2026-06-01 | F8.1–F8.7 | coverLettersService, migration `20260601180000_cover_letters`, API routes, CoverLetterEditor, tracker preview + Letter badge |
 | 2026-06-01 | Landing + tracker UX | Hero search restore, junior defaults, full-height jobs board, carousel fallback, V2 row colours, rejection/interview workflow, sidebar |
 | 2026-06-01 | F7.1–F7.10 + UX | Shared job search bar (app + landing), tracker API/UI, profile “Use my preferences”, marketing copy aligned |
 | 2026-06-01 | F7.1–F7.10 | Application tracker API + dashboard `ApplicationTracker`, `/applications/[id]`, notes, saved searches, shared job search bar |
@@ -385,5 +420,7 @@ flowchart LR
 | 2026-05-31 | F1.5–F1.10: app Next.js on :3001, health API, Prisma schema, DEPLOY.md, CI, UX kit |
 | 2026-05-31 | F3 landing page verified; F4 jobsService (Adzuna), API routes, /jobs UI, 15min in-memory cache |
 | 2026-05-31 | F5: route guards, track-from-job flow, applicationService, /profile stub, /applications/new |
+| 2026-06-01 | FA + docs | Application aggregate model in projectVision, architecture, master plan (7 FA phases) |
+| 2026-06-01 | F9 + FA.1–3 | AI cover letters: OpenAI provider, generate API, job-board CTA + merge animation, application hub editor, grounding panel, single-letter model |
 | 2026-06-01 | V2-F3 polish | Application tracker colours, rejectionPhase migration, interview fields, collapsible sidebar |
 | 2026-06-01 | Planning | F7 section linked to unified job board + tracker execution plan |

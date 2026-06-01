@@ -26,9 +26,13 @@ export {
   formatApplicationStatusLabel,
 } from "../applications/constants";
 export type {
+  ApplicationBundle,
+  ApplicationBundleFlags,
   ApplicationDetail,
   ApplicationListItem,
   ApplicationNoteDto,
+  ApplicationProfileSnapshotDto,
+  JobListingSnapshot,
 } from "./applications";
 export type {
   ApplicationNoteInput,
@@ -44,26 +48,33 @@ export { savedJobSearchesService } from "./saved-job-searches";
 export type { SavedJobSearchDto } from "./saved-job-searches";
 export type { SavedJobSearchCreateInput } from "../validators/saved-job-searches";
 
-export const coverLettersService = {
-  /** F8/F9 */
-  generate: async (_input: unknown) => {
-    throw new Error("coverLettersService.generate: not implemented (F9)");
-  },
-};
+export {
+  coverLettersService,
+  CoverLettersServiceError,
+  generateForApplication,
+  generateCoverLetterForBody,
+  previewCoverLetterContent,
+  type CoverLetterDto,
+  type CoverLetterCitation,
+  type GenerateCoverLetterOptions,
+  type GenerateCoverLetterResult,
+  type LetterPayload,
+  type ManualCoverLetterPayload,
+} from "./cover-letters";
+export type {
+  CoverLetterContentInput,
+  CoverLetterGenerateInput,
+} from "../validators/cover-letters";
 
 export {
   profileService,
   computeCompleteness,
+  isProfileReadyForAi,
   type ProfileCompleteness,
   type ProfileDto,
 } from "./profile";
 
-export const usageService = {
-  /** F10 — 5 AI letters/month on freemium */
-  getRemainingAiLetters: async (_userId: string) => {
-    throw new Error("usageService.getRemainingAiLetters: not implemented (F10)");
-  },
-};
+export { usageService } from "./usage";
 
 export const billingService = {
   /** F11 */

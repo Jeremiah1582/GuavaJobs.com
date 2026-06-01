@@ -9,6 +9,7 @@ import type { JobListing } from "@guavajobs/core"
 import { JobCard } from "@/components/jobs/job-card"
 import { JobDetailContent } from "@/components/jobs/job-detail-content"
 import { JobsPagination } from "@/components/jobs/jobs-pagination"
+import type { JobCoverLetterContext } from "@/lib/applications/cover-letter-context"
 import type { ParsedJobsSearchParams } from "@/lib/jobs/search-params"
 import { toSearchParamRecord } from "@/lib/jobs/search-params"
 
@@ -19,6 +20,7 @@ type JobsBoardProps = {
   resultsPerPage: number
   search: ParsedJobsSearchParams
   selectedJob: JobListing | null
+  coverLetterContext?: JobCoverLetterContext | null
   session: { id: string } | null
   defaultSearchBanner?: string | null
 }
@@ -26,11 +28,13 @@ type JobsBoardProps = {
 function DetailPanel({
   job,
   session,
+  coverLetterContext,
   onBack,
   showBack,
 }: {
   job: JobListing
   session: { id: string } | null
+  coverLetterContext?: JobCoverLetterContext | null
   onBack?: () => void
   showBack?: boolean
 }) {
@@ -47,7 +51,13 @@ function DetailPanel({
         </button>
       ) : null}
       <div className="min-h-0 flex-1">
-        <JobDetailContent job={job} session={session} compact showFooterMeta={false} />
+        <JobDetailContent
+          job={job}
+          session={session}
+          coverLetterContext={coverLetterContext}
+          compact
+          showFooterMeta={false}
+        />
       </div>
       <p className="mt-4 shrink-0 text-sm">
         <Link
@@ -68,6 +78,7 @@ export function JobsBoard({
   resultsPerPage,
   search,
   selectedJob,
+  coverLetterContext,
   session,
   defaultSearchBanner,
 }: JobsBoardProps) {
@@ -124,7 +135,11 @@ export function JobsBoard({
 
           {showDesktopDetail && activeJob ? (
             <div className="scrollbar-hide hidden min-h-0 overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-6 lg:block lg:max-h-full">
-              <DetailPanel job={activeJob} session={session} />
+              <DetailPanel
+                job={activeJob}
+                session={session}
+                coverLetterContext={coverLetterContext}
+              />
             </div>
           ) : null}
 
@@ -133,6 +148,7 @@ export function JobsBoard({
               <DetailPanel
                 job={activeJob}
                 session={session}
+                coverLetterContext={coverLetterContext}
                 showBack
                 onBack={clearSelection}
               />

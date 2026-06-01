@@ -75,12 +75,12 @@ export function JobSearchBar({
   return (
     <>
       {preferenceQ?.trim() ? (
-        <div className="mb-2 flex justify-end">
+        <div className="mb-1 flex justify-end">
           <button
             type="button"
             disabled={!showPreferences || pending}
             onClick={() => setQ(preferenceQ!.trim())}
-            className="text-xs font-medium text-guava-pink hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+            className="text-[11px] font-medium leading-none text-guava-pink hover:underline disabled:cursor-not-allowed disabled:opacity-50 sm:text-xs"
           >
             Use my preferences
           </button>

@@ -1,8 +1,18 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
+import { Suspense } from "react"
 import { ExternalLink } from "lucide-react"
-import { applicationsService, ApplicationsServiceError, usersService } from "@guavajobs/core"
+import {
+  applicationsService,
+  ApplicationsServiceError,
+  profileService,
+  usersService,
+} from "@guavajobs/core"
 
+import { ApplicationCvSection } from "@/components/applications/application-cv-section"
+import { ApplicationGeneratedToast } from "@/components/applications/application-generated-toast"
+import { ApplicationLetterEditor } from "@/components/applications/application-letter-editor"
+import { LetterGroundingPanel } from "@/components/applications/letter-grounding-panel"
 import { ApplicationStatusForm } from "@/components/dashboard/application-status-form"
 import { ApplicationNotesPanel } from "@/components/dashboard/application-notes-panel"
 import { PageHeader } from "@/components/page-header"
@@ -27,9 +37,9 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
   const { id } = await params
   await usersService.ensureUser(session)
 
-  let application
+  let bundle
   try {
-    application = await applicationsService.getByIdForUser(session.id, id)
+    bundle = await applicationsService.getBundleForUser(session.id, id)
   } catch (err) {
     if (err instanceof ApplicationsServiceError && err.status === 404) {
       notFound()
@@ -37,10 +47,17 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
     throw err
   }
 
+  const { application, jobDescriptionText, jobListingSnapshot, letter } = bundle
+  const profile = await profileService.getByUserId(session.id)
   const externalLink = application.jobUrl
+  const jobDescription =
+    jobDescriptionText ?? application.jobDescriptionSnapshot ?? null
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 md:px-6">
+      <Suspense fallback={null}>
+        <ApplicationGeneratedToast />
+      </Suspense>
       <nav className="mb-6 text-sm text-muted-foreground">
         <Link href="/dashboard" className="hover:text-accent">
           Application tracker
@@ -133,11 +150,40 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
         </section>
       ) : null}
 
-      {application.jobDescriptionSnapshot ? (
+      {jobListingSnapshot ? (
+        <section className="mt-10">
+          <h2 className="text-sm font-semibold text-foreground">Job snapshot</h2>
+          <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+            {jobListingSnapshot.salaryText ? (
+              <div>
+                <dt className="text-muted-foreground">Salary</dt>
+                <dd>{jobListingSnapshot.salaryText}</dd>
+              </div>
+            ) : null}
+            {jobListingSnapshot.category ? (
+              <div>
+                <dt className="text-muted-foreground">Category</dt>
+                <dd>{jobListingSnapshot.category}</dd>
+              </div>
+            ) : null}
+            {jobListingSnapshot.contractType ? (
+              <div>
+                <dt className="text-muted-foreground">Contract</dt>
+                <dd>{jobListingSnapshot.contractType}</dd>
+              </div>
+            ) : null}
+          </dl>
+          {jobDescription ? (
+            <div className="mt-3 max-h-80 overflow-y-auto rounded-lg border border-border bg-muted/30 p-4 text-sm whitespace-pre-wrap text-muted-foreground">
+              {jobDescription}
+            </div>
+          ) : null}
+        </section>
+      ) : jobDescription ? (
         <section className="mt-10">
           <h2 className="text-sm font-semibold text-foreground">Job snapshot</h2>
           <div className="mt-3 max-h-80 overflow-y-auto rounded-lg border border-border bg-muted/30 p-4 text-sm whitespace-pre-wrap text-muted-foreground">
-            {application.jobDescriptionSnapshot}
+            {jobDescription}
           </div>
         </section>
       ) : null}
@@ -149,12 +195,16 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
         />
       </section>
 
-      <section className="mt-12 rounded-lg border border-dashed border-border p-6 text-center">
-        <p className="text-sm font-medium text-foreground">Cover letters</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manual and AI cover letter editing ships in the next release.
-        </p>
-      </section>
+      <ApplicationLetterEditor
+        applicationId={application.id}
+        company={application.company}
+        initialLetter={letter}
+        isAiAssisted={bundle.flags.isAiAssisted}
+      />
+
+      <LetterGroundingPanel citations={letter?.citations ?? []} />
+
+      <ApplicationCvSection cvFileUrl={profile?.cvFileUrl ?? null} />
 
       <p className="mt-8 text-xs text-muted-foreground">
         Status: {formatStatus(application.status, application.rejectionPhase)} · Updated{" "}
