@@ -24,6 +24,8 @@ export type JobListing = {
   salary?: JobSalary;
 };
 
+export type JobSortBy = "relevance" | "date";
+
 /** Raw search params (coerced by jobSearchSchema in jobsService.search). */
 export type JobSearchInput = {
   q?: string;
@@ -31,6 +33,9 @@ export type JobSearchInput = {
   country?: JobCountry;
   page?: number | string;
   resultsPerPage?: number | string;
+  distanceKm?: number | string;
+  maxDaysOld?: number | string;
+  sortBy?: JobSortBy | string;
 };
 
 export type JobSearchResult = {

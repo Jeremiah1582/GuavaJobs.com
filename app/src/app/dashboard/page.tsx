@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { LayoutDashboard, Plus } from "lucide-react"
 import { applicationsService, usersService } from "@guavajobs/core"
 
+import { ApplicationTracker } from "@/components/dashboard/application-tracker"
 import { TrackedToast } from "@/components/dashboard/tracked-toast"
 import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
@@ -11,10 +12,6 @@ import { Button } from "@/components/ui/button"
 import { getSession } from "@/lib/auth/get-session"
 
 export const dynamic = "force-dynamic"
-
-function formatStatus(status: string): string {
-  return status.charAt(0) + status.slice(1).toLowerCase()
-}
 
 export default async function DashboardPage() {
   const session = await getSession()
@@ -32,7 +29,7 @@ export default async function DashboardPage() {
       </Suspense>
       <PageHeader
         title="Application tracker"
-        description="Your saved job applications. Full pipeline tools ship in F7."
+        description="Track every role you pursue. Expand a row to update status, add notes, or open the full application page."
       />
 
       <div className="mb-8 flex flex-wrap gap-3">
@@ -48,25 +45,7 @@ export default async function DashboardPage() {
       </div>
 
       {applications.length > 0 ? (
-        <ul className="divide-y divide-border rounded-lg border border-border">
-          {applications.map((application) => (
-            <li
-              key={application.id}
-              className="flex flex-col gap-1 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="font-medium text-foreground">{application.title}</p>
-                <p className="text-sm text-muted-foreground">{application.company}</p>
-              </div>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span>{formatStatus(application.status)}</span>
-                <time dateTime={application.updatedAt.toISOString()}>
-                  {application.updatedAt.toLocaleDateString("en-GB")}
-                </time>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <ApplicationTracker applications={applications} />
       ) : (
         <EmptyState
           icon={LayoutDashboard}

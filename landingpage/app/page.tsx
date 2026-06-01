@@ -1,5 +1,6 @@
 import Header from "@/components/header"
 import Hero from "@/components/hero"
+import { TrackerDashboardPreview } from "@/components/tracker-dashboard-preview"
 import About from "@/components/about"
 import LogoCloud from "@/components/logo-cloud"
 import SelectedWorks from "@/components/selected-works"
@@ -19,6 +20,7 @@ export default function Home() {
         <Header />
         <Hero />
         <LogoCloud />
+        <TrackerDashboardPreview />
         <About />
         <SelectedWorks />
         <Services />

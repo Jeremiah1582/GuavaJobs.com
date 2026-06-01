@@ -14,6 +14,9 @@ export const GET = withErrorHandler(async (request) => {
       country: (searchParams.get("country") as "gb" | "de" | null) ?? undefined,
       page: searchParams.get("page") ?? undefined,
       resultsPerPage: searchParams.get("resultsPerPage") ?? undefined,
+      distanceKm: searchParams.get("distanceKm") ?? undefined,
+      maxDaysOld: searchParams.get("maxDaysOld") ?? undefined,
+      sortBy: (searchParams.get("sortBy") as "relevance" | "date" | null) ?? undefined,
     })
     return jsonSuccess(data)
   } catch (err) {

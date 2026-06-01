@@ -2,8 +2,7 @@ import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import { DM_Sans, DM_Serif_Display } from "next/font/google"
 
-import { AppFooter } from "@/components/layout/app-footer"
-import { AppHeader } from "@/components/layout/app-header"
+import { AppShell } from "@/components/layout/app-shell"
 import { AppToaster } from "@/components/ui/sonner"
 import { appUrl } from "@/lib/env"
 
@@ -36,9 +35,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body
         className={`${dmSans.variable} ${dmSerif.variable} flex min-h-screen flex-col font-sans antialiased`}
       >
-        <AppHeader />
-        <main className="flex-1 pt-24">{children}</main>
-        <AppFooter />
+        <AppShell>{children}</AppShell>
         <AppToaster />
       </body>
     </html>

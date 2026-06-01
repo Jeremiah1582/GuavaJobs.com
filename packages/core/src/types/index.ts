@@ -7,7 +7,6 @@ export type ApplicationStatus =
   | "applied"
   | "waiting"
   | "interview"
-  | "rejected"
   | "offer"
   | "accepted";
 
@@ -16,7 +15,6 @@ export const APPLICATION_STATUSES: ApplicationStatus[] = [
   "applied",
   "waiting",
   "interview",
-  "rejected",
   "offer",
   "accepted",
 ];

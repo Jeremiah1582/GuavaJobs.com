@@ -4,18 +4,45 @@
  */
 
 export { usersService } from "./users";
-export { jobsService, JobsServiceError } from "./jobs";
+export { jobsService, JobsServiceError, JUNIOR_DEFAULT_WHAT } from "./jobs";
 export type {
   JobCountry,
   JobListing,
   JobSalary,
   JobSearchInput,
   JobSearchResult,
+  JobSortBy,
 } from "./jobs";
 
-export { applicationsService } from "./applications";
-export type { ApplicationListItem } from "./applications";
-export type { ManualApplicationCreateInput } from "../validators/applications";
+export {
+  applicationsService,
+  ApplicationsServiceError,
+} from "./applications";
+export { getApplicationRowClass } from "../applications/row-styles";
+export {
+  PIPELINE_APPLICATION_STATUSES,
+  PIPELINE_STATUS_OPTIONS,
+  STAGE_ORDER,
+  formatApplicationStatusLabel,
+} from "../applications/constants";
+export type {
+  ApplicationDetail,
+  ApplicationListItem,
+  ApplicationNoteDto,
+} from "./applications";
+export type {
+  ApplicationNoteInput,
+  ApplicationUpdateInput,
+  InterviewUpdateInput,
+  ManualApplicationCreateInput,
+} from "../validators/applications";
+
+/** Alias for interview panel payloads. */
+export type { InterviewUpdateInput as InterviewDetailsInput } from "../validators/applications";
+
+export { savedJobSearchesService } from "./saved-job-searches";
+export type { SavedJobSearchDto } from "./saved-job-searches";
+export type { SavedJobSearchCreateInput } from "../validators/saved-job-searches";
 
 export const coverLettersService = {
   /** F8/F9 */

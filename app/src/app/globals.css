@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "../../../shared/guava-tokens.css";
 
+@source "../../../packages/core/src/applications/row-styles.ts";
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -125,6 +127,30 @@
   --color-twilight-lavender: var(--twilight-lavender);
 }
 
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@layer utilities {
+  .shadow-search-float {
+    box-shadow:
+      0 4px 6px -1px color-mix(in oklch, var(--guava-pink) 8%, transparent),
+      0 20px 40px -12px color-mix(in oklch, var(--guava-pink) 18%, transparent);
+  }
+
+  .bg-guava-pink-gradient {
+    background: linear-gradient(
+      135deg,
+      var(--guava-pink-gradient-from) 0%,
+      var(--guava-pink-gradient-to) 100%
+    );
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -135,4 +161,12 @@
   a:hover {
     color: var(--accent);
   }
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

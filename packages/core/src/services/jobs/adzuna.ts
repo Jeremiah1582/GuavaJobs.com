@@ -136,6 +136,9 @@ export async function fetchAdzunaSearch(params: {
   resultsPerPage: number;
   what?: string;
   where?: string;
+  distanceKm?: number;
+  maxDaysOld?: number;
+  sortBy?: "relevance" | "date";
 }): Promise<{ count: number; results: JobListing[] }> {
   const { appId, appKey } = getCredentials();
   const search = new URLSearchParams({
@@ -145,6 +148,9 @@ export async function fetchAdzunaSearch(params: {
   });
   if (params.what) search.set("what", params.what);
   if (params.where) search.set("where", params.where);
+  if (params.distanceKm != null) search.set("distance", String(params.distanceKm));
+  if (params.maxDaysOld != null) search.set("max_days_old", String(params.maxDaysOld));
+  if (params.sortBy) search.set("sort_by", params.sortBy);
 
   const url = `${ADZUNA_BASE}/jobs/${params.country}/search/${params.page}?${search}`;
   const data = await adzunaFetch<AdzunaSearchResponse>(url);

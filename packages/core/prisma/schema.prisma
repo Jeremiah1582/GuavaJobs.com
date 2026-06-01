@@ -20,9 +20,13 @@ enum ApplicationStatus {
   APPLIED
   WAITING
   INTERVIEW
-  REJECTED
   OFFER
   ACCEPTED
+}
+
+enum ApplicationRejectionPhase {
+  PRE_INTERVIEW
+  POST_INTERVIEW
 }
 
 enum CoverLetterSource {
@@ -39,8 +43,9 @@ model User {
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
-  profile      Profile?
-  applications Application[]
+  profile          Profile?
+  applications     Application[]
+  savedJobSearches SavedJobSearch[]
 
   @@map("users")
 }
@@ -62,23 +67,76 @@ model Profile {
 }
 
 model Application {
-  id                    String            @id @default(uuid()) @db.Uuid
-  userId                String            @db.Uuid
-  status                ApplicationStatus @default(DRAFT)
-  company               String
-  title                 String
-  jobExternalId         String?
-  jobDescriptionSnapshot String?          @db.Text
-  notes                 String?           @db.Text
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  id                     String                     @id @default(uuid()) @db.Uuid
+  userId                 String                     @db.Uuid
+  status                 ApplicationStatus          @default(DRAFT)
+  rejectionPhase         ApplicationRejectionPhase?
+  rejectedAt             DateTime?
+  company                String
+  title                  String
+  jobExternalId          String?
+  jobUrl                 String?
+  source                 String?
+  location               String?
+  salaryText             String?
+  nextStep               String?
+  contactName            String?
+  viaRecruiter           Boolean                    @default(false)
+  fitScore               String?
+  industry               String?
+  requirementsNotes      String?                    @db.Text
+  aboutNotes             String?                    @db.Text
+  language               String?
+  roleStartDate          DateTime?
+  interviewRound         Int?
+  interviewScheduledAt   DateTime?
+  interviewLocation      String?
+  interviewUrl           String?
+  jobDescriptionSnapshot String?                    @db.Text
+  notes                  String?                    @db.Text
+  appliedAt              DateTime?
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   coverLetters CoverLetter[]
+  timelineNotes ApplicationNote[]
 
   @@unique([userId, jobExternalId])
   @@index([userId])
   @@map("applications")
+}
+
+model ApplicationNote {
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @db.Uuid
+  body          String   @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("application_notes")
+}
+
+model SavedJobSearch {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  label      String
+  q          String?
+  where      String?
+  country    String   @default("gb")
+  distanceKm Int?
+  maxDaysOld Int?
+  sortBy     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("saved_job_searches")
 }
 
 model CoverLetter {

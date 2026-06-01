@@ -24,7 +24,7 @@ export default async function NewApplicationPage() {
     <div className="mx-auto max-w-lg px-4 py-12 md:px-6">
       <PageHeader
         title="Add job manually"
-        description="Save a role that is not on the job board as a draft application."
+        description="Save a role that is not on the job board — include URL, source, and location when you have them."
       />
 
       <form action={createManualApplicationAction} className="space-y-6">
@@ -47,6 +47,26 @@ export default async function NewApplicationPage() {
             placeholder="https://…"
             maxLength={2000}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="source">Source (optional)</Label>
+          <Input
+            id="source"
+            name="source"
+            placeholder="LinkedIn, company site, recruiter…"
+            maxLength={120}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="location">Location (optional)</Label>
+          <Input id="location" name="location" placeholder="City, remote, hybrid…" maxLength={200} />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="appliedAt">Date applied (optional)</Label>
+          <Input id="appliedAt" name="appliedAt" type="date" />
         </div>
 
         <div className="space-y-2">

@@ -9,10 +9,18 @@ import { getCached, setCached, JOB_CACHE_TTL_MS } from "./cache";
 import { JobsServiceError } from "./errors";
 import type { JobListing, JobSearchInput, JobSearchResult } from "./types";
 
-export type { JobCountry, JobListing, JobSalary, JobSearchInput, JobSearchResult } from "./types";
+export type {
+  JobCountry,
+  JobListing,
+  JobSalary,
+  JobSearchInput,
+  JobSearchResult,
+  JobSortBy,
+} from "./types";
 export { JobsServiceError } from "./errors";
 export { encodeJobId, parseJobId } from "./adzuna";
 export { JOB_CACHE_TTL_MS } from "./cache";
+export { JUNIOR_DEFAULT_WHAT } from "./constants";
 
 function cacheKey(prefix: string, payload: unknown): string {
   return `${prefix}:${JSON.stringify(payload)}`;
@@ -29,8 +37,18 @@ export const jobsService = {
       );
     }
 
-    const { q, where, country, page, resultsPerPage } = parsed.data;
-    const key = cacheKey("search", { q, where, country, page, resultsPerPage });
+    const { q, where, country, page, resultsPerPage, distanceKm, maxDaysOld, sortBy } =
+      parsed.data;
+    const key = cacheKey("search", {
+      q,
+      where,
+      country,
+      page,
+      resultsPerPage,
+      distanceKm,
+      maxDaysOld,
+      sortBy,
+    });
     const cached = getCached<JobSearchResult>(key);
     if (cached) return cached;
 
@@ -41,6 +59,9 @@ export const jobsService = {
         resultsPerPage,
         what: q,
         where,
+        distanceKm,
+        maxDaysOld,
+        sortBy,
       });
 
       const payload: JobSearchResult = {

@@ -13,6 +13,21 @@ export function formatSalary(salary?: JobSalary): string | null {
   return null
 }
 
+export function formatPostedDate(iso?: string): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 1) return "Posted today";
+  if (diffDays === 1) return "Posted yesterday";
+  if (diffDays < 7) return `Posted ${diffDays} days ago`;
+  return `Posted ${date.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+}
+
 export function stripHtml(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, "\n")

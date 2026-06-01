@@ -1,49 +1,52 @@
 import { Suspense } from "react"
 import { AlertTriangle, Search } from "lucide-react"
-import { jobsService, JobsServiceError } from "@guavajobs/core"
+import { redirect } from "next/navigation"
+import { jobsService, JobsServiceError, type JobListing } from "@guavajobs/core"
 
 import { AdzunaAttribution } from "@/components/jobs/adzuna-attribution"
-import { JobCard } from "@/components/jobs/job-card"
-import { JobSearchForm } from "@/components/jobs/job-search-form"
-import { JobsPagination } from "@/components/jobs/jobs-pagination"
+import { JobsBoard } from "@/components/jobs/jobs-board"
+import { JobsSearchSection } from "@/components/jobs/jobs-search-section"
 import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
 import { Skeleton } from "@/components/ui/skeleton"
+import { trackJobById } from "@/lib/applications/track-job"
+import { getSession } from "@/lib/auth/get-session"
+import { getGeoLocation } from "@/lib/geo/server"
+import {
+  parseJobsSearchParams,
+  toSearchParamRecord,
+  type ParsedJobsSearchParams,
+} from "@/lib/jobs/search-params"
 
 type JobsPageProps = {
-  searchParams: Promise<{
-    q?: string
-    where?: string
-    country?: string
-    page?: string
-  }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-function SearchFormFallback() {
-  return <Skeleton className="h-36 w-full rounded-xl" />
+function SearchToolbarFallback() {
+  return <Skeleton className="h-40 w-full shrink-0 rounded-xl" />
 }
 
-async function JobsResults({
-  q,
-  where,
-  country,
-  page,
-}: {
-  q?: string
-  where?: string
-  country?: string
-  page?: string
-}) {
-  const resolvedCountry = country === "de" ? "de" : "gb"
-  const resolvedPage = page ? Number(page) : 1
+function buildDefaultBanner(search: ParsedJobsSearchParams): string | null {
+  if (!search.isDefaultSearch) return null
+  if (search.where) {
+    return `Showing junior tech roles near ${search.where}. Refine your search above.`
+  }
+  return "Showing junior tech roles popular for career changers. Refine your search above."
+}
+
+async function JobsResults({ search }: { search: ParsedJobsSearchParams }) {
+  const session = await getSession()
 
   try {
     const result = await jobsService.search({
-      q,
-      where,
-      country: resolvedCountry,
-      page: Number.isFinite(resolvedPage) ? resolvedPage : 1,
+      q: search.effectiveQ,
+      where: search.where,
+      country: search.country,
+      page: search.page,
       resultsPerPage: 20,
+      distanceKm: search.distanceKm,
+      maxDaysOld: search.maxDaysOld,
+      sortBy: search.sortBy ?? (search.maxDaysOld ? "date" : undefined),
     })
 
     if (result.jobs.length === 0) {
@@ -51,26 +54,34 @@ async function JobsResults({
         <EmptyState
           icon={Search}
           title="No jobs found"
-          description="Try different keywords, another city, or switch between UK and Germany markets."
+          description="Try different keywords, widen the distance, or switch between UK and Germany markets."
         />
       )
     }
 
+    const detailJobId = search.job ?? result.jobs[0]?.id ?? null
+    let selectedJob: JobListing | null = null
+    if (detailJobId) {
+      const fromList = result.jobs.find((j) => j.id === detailJobId) ?? null
+      try {
+        selectedJob = (await jobsService.getById(detailJobId)) ?? fromList
+      } catch {
+        selectedJob = fromList
+      }
+    }
+
     return (
-      <div className="space-y-6">
-        <ul className="space-y-4">
-          {result.jobs.map((job) => (
-            <li key={job.id}>
-              <JobCard job={job} />
-            </li>
-          ))}
-        </ul>
-        <JobsPagination
-          page={result.page}
-          totalCount={result.totalCount}
-          resultsPerPage={result.resultsPerPage}
-          searchParams={{ q, where, country: resolvedCountry }}
-        />
+      <div className="flex min-h-0 flex-1 flex-col">
+      <JobsBoard
+        jobs={result.jobs}
+        totalCount={result.totalCount}
+        page={result.page}
+        resultsPerPage={result.resultsPerPage}
+        search={{ ...search, job: selectedJob?.id ?? search.job }}
+        selectedJob={selectedJob}
+        session={session}
+        defaultSearchBanner={buildDefaultBanner(search)}
+      />
       </div>
     )
   } catch (err) {
@@ -91,39 +102,66 @@ async function JobsResults({
 }
 
 export default async function JobsPage({ searchParams }: JobsPageProps) {
-  const params = await searchParams
-  const q = params.q?.trim()
-  const where = params.where?.trim()
-  const country = params.country === "de" ? "de" : "gb"
-  const page = params.page
+  const raw = await searchParams
+  const geo = await getGeoLocation()
+
+  const track =
+    typeof raw.track === "string"
+      ? raw.track
+      : Array.isArray(raw.track)
+        ? raw.track[0]
+        : undefined
+
+  const searchKeys = Object.keys(raw).filter((k) => k !== "track")
+  if (
+    searchKeys.length === 0 &&
+    geo?.city &&
+    track !== "1"
+  ) {
+    const qs = new URLSearchParams({
+      where: geo.city,
+      country: geo.market,
+    })
+    redirect(`/jobs?${qs.toString()}`)
+  }
+
+  const search = parseJobsSearchParams(raw, geo)
+  const session = await getSession()
+
+  if (track === "1" && search.job && session) {
+    await trackJobById(search.job)
+    redirect("/dashboard?tracked=1")
+  }
+
+  const suspenseKey = JSON.stringify(toSearchParamRecord(search))
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 md:px-6">
+    <div className="mx-auto flex min-h-[calc(100dvh-6rem)] max-w-7xl flex-col px-4 py-6 md:px-6">
       <PageHeader
         title="Job board"
-        description="Browse tech roles in the UK and Germany. No account required to search."
+        description="Browse junior tech roles in the UK and Germany. No account required to search."
       />
 
-      <Suspense fallback={<SearchFormFallback />}>
-        <JobSearchForm defaultQ={q} defaultWhere={where} defaultCountry={country} />
+      <Suspense fallback={<SearchToolbarFallback />}>
+        <JobsSearchSection search={search} />
       </Suspense>
 
-      <div className="mt-10">
+      <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-hidden">
         <Suspense
-          key={`${q ?? ""}-${where ?? ""}-${country}-${page ?? "1"}`}
+          key={suspenseKey}
           fallback={
             <div className="space-y-4">
               {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-32 w-full rounded-xl" />
+                <Skeleton key={i} className="h-28 w-full rounded-xl" />
               ))}
             </div>
           }
         >
-          <JobsResults q={q} where={where} country={country} page={page} />
+          <JobsResults search={search} />
         </Suspense>
       </div>
 
-      <div className="mt-12 border-t border-border pt-8">
+      <div className="mt-8 shrink-0 border-t border-border pt-6">
         <AdzunaAttribution />
       </div>
     </div>

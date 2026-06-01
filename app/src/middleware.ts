@@ -1,11 +1,13 @@
 import { type NextRequest } from "next/server"
 
+import { ensureGeoCookie } from "@/lib/geo/middleware"
 import { warnIfSupabaseEnvMissing } from "@/lib/supabase/env"
 import { updateSession } from "@/lib/supabase/middleware"
 
 export async function middleware(request: NextRequest) {
   warnIfSupabaseEnvMissing()
-  return updateSession(request)
+  const response = await updateSession(request)
+  return ensureGeoCookie(request, response)
 }
 
 export const config = {

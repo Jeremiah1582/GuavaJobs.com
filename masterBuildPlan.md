@@ -1,4 +1,4 @@
-created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 12:00:00
+created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 14:00:00
 
 # GuavaJobs — Master Build Plan
 
@@ -92,7 +92,7 @@ created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 12:00:00
 | - [x] | **F3.1** | Public route `/` on **landingpage** — hero: hub positioning (track applications + career progression). |
 | - [x] | **F3.2** | ICP-focused copy: UK/DE bootcamp grads & tech career changers; English, Professional tone. |
 | - [x] | **F3.3** | Value blocks: free tracker, 5 AI letters/month, no credit card; grounded AI mention. |
-| - [x] | **F3.4** | Primary CTA → **`${NEXT_PUBLIC_APP_URL}/jobs`**; secondary → **`${NEXT_PUBLIC_APP_URL}/sign-up`**. |
+| - [x] | **F3.4** | Hero job search (GET → app `/jobs`); self-contained Lucide hero bar; junior placeholder; carousel never empty. |
 | - [x] | **F3.5** | Social proof placeholder (testimonials / “how it works” 3-step strip). |
 | - [x] | **F3.6** | Footer: Privacy, Terms, contact; link to app; no Adzuna attribution here (jobs live on App). |
 | - [x] | **F3.7** | Mobile-responsive polish; Lighthouse pass on performance/accessibility basics. |
@@ -107,7 +107,7 @@ created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 12:00:00
 | - [x] | **F4.2** | DB model: `JobListing` cache (optional) or pass-through—decide cache TTL for performance. |
 | - [x] | **F4.3** | **`GET /api/v1/jobs`** — search, pagination (public). |
 | - [x] | **F4.4** | **`GET /api/v1/jobs/:id`** — job detail (public). |
-| - [x] | **F4.5** | App UI: public **`/jobs`** — search, filters, paginated list (consumes service or API). |
+| - [x] | **F4.5** | App UI: public **`/jobs`** — search, filters, full-viewport board, geo redirect on bare `/jobs`. |
 | - [x] | **F4.6** | App UI: public **`/jobs/[id]`** — full description, company, location, salary. |
 | - [x] | **F4.7** | Empty / error states: no results, API down, invalid job id. |
 | - [x] | **F4.8** | Adzuna **attribution** on App job pages per API terms. |
@@ -147,18 +147,22 @@ created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 12:00:00
 
 ### F7 — Application tracker (`app/` + API)
 
+> **Unified execution plan (job board UX + F7):** `.cursor/plans/job_board_ux_redesign_87e19803.plan.md`  
+> Build order there: F4 filters/board → **F7 core + API** → dashboard expandable rows + `/applications/[id]` → landing hero → saved searches.  
+> **Already done:** Prisma `Application` + enum, `createFromJobListing`, `listByUser`, manual create, `/dashboard` stub (F5). **This feature completes F7.1–F7.10.**
+
 | Status | Phase | Scope |
 |--------|-------|-------|
-| - [ ] | **F7.1** | DB model + **`applicationService`**: user, job ref, company, title, status, dates, notes. |
-| - [ ] | **F7.2** | Dashboard table/list: all applications for user; sort by updated date. |
-| - [ ] | **F7.3** | **V1 simplified statuses** (e.g. Draft, Applied, Waiting, Interview, Rejected, Offer, Accepted)—define enum in core. |
-| - [ ] | **F7.4** | Row actions: change status, mark applied/not applied, open detail. |
-| - [ ] | **F7.5** | Application detail page: job info snapshot, status, timeline, linked cover letter(s). |
-| - [ ] | **F7.6** | **Notes** field per application (markdown or plain text); autosave or explicit save. |
-| - [ ] | **F7.7** | Empty state: “Browse jobs” CTA; first-run hint after sign-up gate creates draft. |
-| - [ ] | **F7.8** | **Unlimited applications** on free tier—no paywall on tracker CRUD. |
-| - [ ] | **F7.9** | Mobile-friendly tracker UI (card layout on small screens). |
-| - [ ] | **F7.10** | **`GET/POST/PATCH/DELETE /api/v1/applications`** (+ `/:id`) — auth required. |
+| - [x] | **F7.1** | DB model + **`applicationService`**: user, job ref, company, title, status, dates, notes. |
+| - [x] | **F7.2** | Dashboard table/list: all applications for user; sort by updated date. |
+| - [x] | **F7.3** | Pipeline statuses (Draft→Accepted); rejection via **Rejected** button + `rejectionPhase` (pre/post interview row colours). |
+| - [x] | **F7.4** | Row actions: status select, **Next stage**, **Rejected**, interview details, open detail. |
+| - [x] | **F7.5** | Application detail page `/applications/[id]`: snapshot, status, notes timeline, cover-letter slot (F8). Dashboard expand = quick actions. |
+| - [x] | **F7.6** | **Notes** per application: `ApplicationNote` timeline (plain text V1, explicit save); expandable row + detail page. |
+| - [x] | **F7.7** | Empty state: “Browse jobs” CTA; first-run hint after sign-up gate creates draft. |
+| - [x] | **F7.8** | **Unlimited applications** on free tier—no paywall on tracker CRUD. |
+| - [x] | **F7.9** | Mobile-friendly tracker UI (card layout on small screens). |
+| - [x] | **F7.10** | **`GET/POST/PATCH/DELETE /api/v1/applications`** (+ `/:id`) — auth required. |
 
 ---
 
@@ -245,14 +249,14 @@ created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 12:00:00
 | F3 Landing page (landingpage/) | 7 | 7/7 |
 | F4 Public job board + API | 10 | 10/10 |
 | F5 Sign-up gate | 6 | 6/6 |
-| F6 Profile & quiz + API | 9 | 0/9 |
-| F7 Application tracker + API | 10 | 0/10 |
+| F6 Profile & quiz + API | 9 | 9/9 |
+| F7 Application tracker + API | 10 | 10/10 |
 | F8 Manual cover letters + API | 7 | 0/7 |
 | F9 AI cover letters + API | 10 | 0/10 |
 | F10 AI usage limits + API | 7 | 0/7 |
 | F11 Payments + API | 6 | 0/6 |
 | F12 Compliance & launch | 9 | 0/9 |
-| **V1 total** | **98** | **40/98** |
+| **V1 total** | **98** | **59/98** |
 
 ---
 
@@ -268,6 +272,14 @@ created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 12:00:00
 
 ### V2-F3 — Application tracker (full colour system)
 `Status enum expansion → row colours (gray/yellow/red/light blues/green) → red/blue text rules for fell-through & accepted → migration from V1 statuses`
+
+| Done | Item | Notes |
+|------|------|-------|
+| - [x] | Row colour helper + landing mock | `getApplicationRowClass`, tracker preview |
+| - [x] | Rejection workflow | `rejectionPhase` PRE/POST; Rejected button; no REJECTED in enum |
+| - [x] | Interview fields | round, schedule, location/URL; capture panel on INTERVIEW |
+| - [x] | Excel columns on Application | jobUrl, source, location, salary, next step, etc. |
+| - [x] | Desktop collapsible sidebar | `AppSidebar` + layout shell |
 
 ### V2-F4 — Branded cover letters
 `Company domain/logo lookup → subtle brand colours on letter template → preview → PDF export with branding`
@@ -337,19 +349,24 @@ flowchart LR
 ## Progress snapshot
 
 **Last updated:** 2026-06-01  
-**Current focus:** F7 — Application tracker  
-**V1 phases complete:** 49 / 98  
+**Current focus:** F8 — Manual cover letters (+ job board UX polish complete)  
+**V1 phases complete:** 59 / 98  
 **F1 foundation:** 10 / 10 complete  
 **F2 auth:** 7 / 7 complete  
 **F3 landing:** 7 / 7 complete  
 **F4 job board:** 10 / 10 complete  
 **F5 sign-up gate:** 6 / 6 complete  
-**F6 profile & quiz:** 9 / 9 complete
+**F6 profile & quiz:** 9 / 9 complete  
+**F7 application tracker:** 10 / 10 complete
 
 ### Quick log (optional)
 
 | Date | Completed | Notes |
 |------|-----------|-------|
+| 2026-06-01 | Landing + tracker UX | Hero search restore, junior defaults, full-height jobs board, carousel fallback, V2 row colours, rejection/interview workflow, sidebar |
+| 2026-06-01 | F7.1–F7.10 + UX | Shared job search bar (app + landing), tracker API/UI, profile “Use my preferences”, marketing copy aligned |
+| 2026-06-01 | F7.1–F7.10 | Application tracker API + dashboard `ApplicationTracker`, `/applications/[id]`, notes, saved searches, shared job search bar |
+| 2026-06-01 | Planning | Unified job board UX + F7 plan (`.cursor/plans/job_board_ux_redesign_87e19803.plan.md`) |
 | 2026-06-01 | F6.1–F6.9 | profileService, /profile UI, GET/PATCH /api/v1/profile, auth hardening |
 | 2026-05-31 | F5.1–F5.6 | Route guards, track flow (`next`), applicationService, dashboard list, profile stub, manual entry |
 
@@ -368,3 +385,5 @@ flowchart LR
 | 2026-05-31 | F1.5–F1.10: app Next.js on :3001, health API, Prisma schema, DEPLOY.md, CI, UX kit |
 | 2026-05-31 | F3 landing page verified; F4 jobsService (Adzuna), API routes, /jobs UI, 15min in-memory cache |
 | 2026-05-31 | F5: route guards, track-from-job flow, applicationService, /profile stub, /applications/new |
+| 2026-06-01 | V2-F3 polish | Application tracker colours, rejectionPhase migration, interview fields, collapsible sidebar |
+| 2026-06-01 | Planning | F7 section linked to unified job board + tracker execution plan |
