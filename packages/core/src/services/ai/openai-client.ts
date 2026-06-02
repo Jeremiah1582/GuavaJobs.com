@@ -50,7 +50,14 @@ function mapAiError(error: AiClientError): CoverLettersServiceError {
         ApiErrorCode.SERVICE_UNAVAILABLE,
         error.message,
         503,
-        "AI cover letters are not available right now.",
+        "AI cover letters are not configured. Add OPENAI_API_KEY or OPENROUTER_API_KEY to app/.env.local and restart the server.",
+      );
+    case "INVALID_API_KEY":
+      return new CoverLettersServiceError(
+        ApiErrorCode.SERVICE_UNAVAILABLE,
+        error.message,
+        503,
+        "Your AI API key was rejected. Use an OpenAI key for OpenAI, or an OpenRouter key (sk-or-v1-…) which is routed automatically.",
       );
     case "TIMEOUT":
       return new CoverLettersServiceError(

@@ -5,13 +5,20 @@ import { APPLICATION_STATUSES, type ApplicationStatus } from "../types";
 export {
   educationEntrySchema,
   experienceEntrySchema,
+  profileImportMetaSchema,
   profileQuizSchema,
   profileUpdateSchema,
   type EducationEntry,
   type ExperienceEntry,
+  type ProfileImportMeta,
   type ProfileQuiz,
   type ProfileUpdateInput,
 } from "./profile";
+
+export {
+  profileUrlImportResultSchema,
+  type ProfileUrlImportResult,
+} from "./profile-import";
 
 export const applicationStatusSchema = z.enum(
   APPLICATION_STATUSES as [ApplicationStatus, ...ApplicationStatus[]],

@@ -1,7 +1,8 @@
-import type { Prisma, Profile } from "../generated/prisma";
+import { Prisma, type Profile } from "../generated/prisma";
 import { getDb } from "../db";
 import {
   profileUpdateSchema,
+  type ProfileImportMeta,
   type ProfileUpdateInput,
 } from "../validators/profile";
 
@@ -12,12 +13,27 @@ export type ProfileCompleteness = {
 
 export type ProfileDto = {
   userId: string;
+  displayName: string | null;
   summary: string | null;
+  headline: string | null;
+  location: string | null;
+  avatarUrl: string | null;
+  phone: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  region: string | null;
+  postalCode: string | null;
+  country: string | null;
+  websiteUrl: string | null;
   experienceJson: unknown;
   skills: string[];
   educationJson: unknown;
   cvFileUrl: string | null;
   quizJson: unknown;
+  lastImportedAt: string | null;
+  lastImportSourceUrl: string | null;
+  importMetaJson: ProfileImportMeta | null;
   createdAt: string;
   updatedAt: string;
   completeness: ProfileCompleteness;
@@ -42,7 +58,11 @@ function hasEducation(value: unknown): boolean {
 function hasQuiz(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
   const quiz = value as Record<string, unknown>;
-  return Boolean(quiz.roleType || quiz.workMode || (Array.isArray(quiz.priorities) && quiz.priorities.length > 0));
+  return Boolean(
+    quiz.roleType ||
+      quiz.workMode ||
+      (Array.isArray(quiz.priorities) && quiz.priorities.length > 0),
+  );
 }
 
 /** Minimum data required before AI cover letter generation (F9). */
@@ -74,20 +94,43 @@ export function computeCompleteness(profile: Profile): ProfileCompleteness {
   return { percent, missing };
 }
 
-function toDto(profile: Profile): ProfileDto {
+type ProfileWithUser = Profile & {
+  user: { displayName: string | null };
+};
+
+function toDto(profile: ProfileWithUser): ProfileDto {
   return {
     userId: profile.userId,
+    displayName: profile.user.displayName,
     summary: profile.summary,
+    headline: profile.headline,
+    location: profile.location,
+    avatarUrl: profile.avatarUrl,
+    phone: profile.phone,
+    addressLine1: profile.addressLine1,
+    addressLine2: profile.addressLine2,
+    city: profile.city,
+    region: profile.region,
+    postalCode: profile.postalCode,
+    country: profile.country,
+    websiteUrl: profile.websiteUrl,
     experienceJson: profile.experienceJson ?? [],
     skills: profile.skills,
     educationJson: profile.educationJson ?? [],
     cvFileUrl: profile.cvFileUrl,
     quizJson: profile.quizJson ?? {},
+    lastImportedAt: profile.lastImportedAt?.toISOString() ?? null,
+    lastImportSourceUrl: profile.lastImportSourceUrl,
+    importMetaJson: (profile.importMetaJson as ProfileImportMeta | null) ?? null,
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),
     completeness: computeCompleteness(profile),
   };
 }
+
+const profileWithUserInclude = {
+  user: { select: { displayName: true } },
+} as const;
 
 export async function getOrCreateForUser(userId: string): Promise<Profile> {
   const db = getDb();
@@ -100,7 +143,10 @@ export async function getOrCreateForUser(userId: string): Promise<Profile> {
 
 export async function getByUserId(userId: string): Promise<ProfileDto | null> {
   const db = getDb();
-  const profile = await db.profile.findUnique({ where: { userId } });
+  const profile = await db.profile.findUnique({
+    where: { userId },
+    include: profileWithUserInclude,
+  });
   if (!profile) return null;
   return toDto(profile);
 }
@@ -117,6 +163,39 @@ export async function update(
   if (parsed.summary !== undefined) {
     data.summary = parsed.summary;
   }
+  if (parsed.headline !== undefined) {
+    data.headline = parsed.headline;
+  }
+  if (parsed.location !== undefined) {
+    data.location = parsed.location;
+  }
+  if (parsed.avatarUrl !== undefined) {
+    data.avatarUrl = parsed.avatarUrl;
+  }
+  if (parsed.phone !== undefined) {
+    data.phone = parsed.phone;
+  }
+  if (parsed.addressLine1 !== undefined) {
+    data.addressLine1 = parsed.addressLine1;
+  }
+  if (parsed.addressLine2 !== undefined) {
+    data.addressLine2 = parsed.addressLine2;
+  }
+  if (parsed.city !== undefined) {
+    data.city = parsed.city;
+  }
+  if (parsed.region !== undefined) {
+    data.region = parsed.region;
+  }
+  if (parsed.postalCode !== undefined) {
+    data.postalCode = parsed.postalCode;
+  }
+  if (parsed.country !== undefined) {
+    data.country = parsed.country;
+  }
+  if (parsed.websiteUrl !== undefined) {
+    data.websiteUrl = parsed.websiteUrl;
+  }
   if (parsed.experienceJson !== undefined) {
     data.experienceJson = parsed.experienceJson;
   }
@@ -132,11 +211,32 @@ export async function update(
   if (parsed.cvFileUrl !== undefined) {
     data.cvFileUrl = parsed.cvFileUrl;
   }
+  if (parsed.lastImportSourceUrl !== undefined) {
+    data.lastImportSourceUrl = parsed.lastImportSourceUrl;
+    if (parsed.lastImportSourceUrl) {
+      data.lastImportedAt = new Date();
+    }
+  }
+  if (parsed.importMetaJson !== undefined) {
+    data.importMetaJson =
+      parsed.importMetaJson === null
+        ? Prisma.JsonNull
+        : parsed.importMetaJson;
+  }
 
   const db = getDb();
+
+  if (parsed.displayName !== undefined) {
+    await db.user.update({
+      where: { id: userId },
+      data: { displayName: parsed.displayName },
+    });
+  }
+
   const profile = await db.profile.update({
     where: { userId },
     data,
+    include: profileWithUserInclude,
   });
 
   return toDto(profile);

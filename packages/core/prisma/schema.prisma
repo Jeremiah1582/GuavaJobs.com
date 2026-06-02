@@ -37,6 +37,7 @@ enum CoverLetterSource {
 model User {
   id                     String    @id @default(uuid()) @db.Uuid
   email                  String    @unique
+  displayName            String?
   tier                   UserTier  @default(FREEMIUM)
   aiLettersUsedThisMonth Int       @default(0)
   aiUsagePeriodStart     DateTime?
@@ -51,15 +52,29 @@ model User {
 }
 
 model Profile {
-  userId         String   @id @db.Uuid
-  summary        String?
-  experienceJson Json?
-  skills         String[] @default([])
-  educationJson  Json?
-  cvFileUrl      String?
-  quizJson       Json?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  userId              String    @id @db.Uuid
+  summary             String?
+  headline            String?
+  location            String?
+  avatarUrl           String?
+  phone               String?
+  addressLine1        String?
+  addressLine2        String?
+  city                String?
+  region              String?
+  postalCode          String?
+  country             String?
+  websiteUrl          String?
+  experienceJson      Json?
+  skills              String[]  @default([])
+  educationJson       Json?
+  cvFileUrl           String?
+  quizJson            Json?
+  lastImportedAt      DateTime?
+  lastImportSourceUrl String?
+  importMetaJson      Json?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

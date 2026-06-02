@@ -23,10 +23,6 @@ type JobsPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-function SearchToolbarFallback() {
-  return <Skeleton className="h-40 w-full shrink-0 rounded-xl" />
-}
-
 function buildDefaultBanner(search: ParsedJobsSearchParams): string | null {
   if (!search.isDefaultSearch) return null
   if (search.where) {
@@ -151,9 +147,7 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
         description="Browse junior tech roles in the UK and Germany. No account required to search."
       />
 
-      <Suspense fallback={<SearchToolbarFallback />}>
-        <JobsSearchSection search={search} />
-      </Suspense>
+      <JobsSearchSection search={search} />
 
       <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-hidden">
         <Suspense

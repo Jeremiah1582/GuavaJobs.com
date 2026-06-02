@@ -18,6 +18,14 @@ export type ProfileActionState = {
 
 const CV_BUCKET = "cv-uploads"
 
+function formNullableString(
+  raw: FormDataEntryValue | null,
+): string | null | undefined {
+  if (raw === null) return undefined
+  const value = String(raw).trim()
+  return value === "" ? null : value
+}
+
 export async function updateProfileAction(
   _prevState: ProfileActionState,
   formData: FormData,
@@ -30,18 +38,37 @@ export async function updateProfileAction(
   await usersService.ensureUser(session)
 
   try {
-    const summaryRaw = formData.get("summary")
+    const input: Record<string, unknown> = {}
+
+    const nullableFields = [
+      "displayName",
+      "summary",
+      "headline",
+      "location",
+      "avatarUrl",
+      "phone",
+      "addressLine1",
+      "addressLine2",
+      "city",
+      "region",
+      "postalCode",
+      "country",
+      "websiteUrl",
+      "lastImportSourceUrl",
+    ] as const
+
+    for (const field of nullableFields) {
+      const value = formNullableString(formData.get(field))
+      if (value !== undefined) {
+        input[field] = value
+      }
+    }
+
     const experienceRaw = formData.get("experienceJson")
     const educationRaw = formData.get("educationJson")
     const quizRaw = formData.get("quizJson")
     const skillsRaw = formData.get("skills")
-
-    const input: Record<string, unknown> = {}
-
-    if (summaryRaw !== null) {
-      input.summary =
-        String(summaryRaw).trim() === "" ? null : String(summaryRaw)
-    }
+    const importMetaRaw = formData.get("importMetaJson")
 
     if (typeof experienceRaw === "string" && experienceRaw.length > 0) {
       input.experienceJson = JSON.parse(experienceRaw)
@@ -61,6 +88,10 @@ export async function updateProfileAction(
         .map((s) => s.trim())
         .filter(Boolean)
       input.skills = skills
+    }
+
+    if (typeof importMetaRaw === "string" && importMetaRaw.trim().length > 0) {
+      input.importMetaJson = JSON.parse(importMetaRaw)
     }
 
     const parsed = profileUpdateSchema.parse(input)

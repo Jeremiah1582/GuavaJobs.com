@@ -18,10 +18,58 @@ type JobSearchToolbarProps = {
   preferenceQ?: string
 }
 
-const FILTER_SELECT_CLASS =
-  "block h-9 w-full min-w-0 truncate rounded-lg border border-input/80 bg-background px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-guava-pink/40 disabled:opacity-60 sm:h-10 sm:rounded-xl sm:px-3 sm:text-sm"
+const TOOLBAR_SHELL_CLASS = [
+  "overflow-hidden rounded-xl border border-border/80 bg-card/95 shadow-search-float backdrop-blur-sm",
+  "sm:rounded-2xl",
+].join(" ")
 
-const FILTER_FIELD_CLASS = "min-w-0 shrink flex-1 basis-0"
+const FILTER_SELECT_CLASS = [
+  "block h-9 w-full min-w-0 rounded-lg border border-input/80 bg-background px-2.5 text-xs shadow-sm",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-guava-pink/40",
+  "disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:rounded-xl sm:px-3 sm:text-sm",
+].join(" ")
+
+type FilterSelectProps = {
+  id: string
+  label: string
+  disabled?: boolean
+  value: string
+  onChange: (value: string) => void
+  options: ReadonlyArray<{ label: string; value: string }>
+}
+
+function FilterSelect({
+  id,
+  label,
+  disabled,
+  value,
+  onChange,
+  options,
+}: FilterSelectProps) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <label
+        htmlFor={id}
+        className="text-[11px] font-medium leading-none text-muted-foreground sm:text-xs"
+      >
+        {label}
+      </label>
+      <select
+        id={id}
+        disabled={disabled}
+        className={FILTER_SELECT_CLASS}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((opt) => (
+          <option key={opt.label} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
 
 export function JobSearchToolbar({ defaults, preferenceQ }: JobSearchToolbarProps) {
   const router = useRouter()
@@ -41,84 +89,77 @@ export function JobSearchToolbar({ defaults, preferenceQ }: JobSearchToolbarProp
     })
   }
 
+  const distanceOptions = DISTANCE_MILES_OPTIONS.map((opt) => ({
+    label: opt.label,
+    value: opt.value === undefined ? "" : String(opt.value),
+  }))
+
+  const dateOptions = MAX_DAYS_OPTIONS.map((opt) => ({
+    label: opt.label,
+    value: opt.value === undefined ? "" : String(opt.value),
+  }))
+
+  const sortOptions = SORT_OPTIONS.map((opt) => ({
+    label: opt.label,
+    value: opt.value,
+  }))
+
   return (
-    <div className="space-y-2">
-      <JobSearchBar
-        defaultQ={defaults.q ?? ""}
-        defaultWhere={defaults.where ?? ""}
-        defaultCountry={defaults.country}
-        preferenceQ={preferenceQ}
-      />
+    <section className={TOOLBAR_SHELL_CLASS} aria-label="Job search">
+      <div className="space-y-3 p-2.5 sm:p-3">
+        <JobSearchBar
+          embedded
+          defaultQ={defaults.q ?? ""}
+          defaultWhere={defaults.where ?? ""}
+          defaultCountry={defaults.country}
+          preferenceQ={preferenceQ}
+        />
 
-      <div className="flex min-w-0 flex-nowrap items-stretch gap-1.5 rounded-xl border border-border/80 bg-card/95 p-2 shadow-search-float backdrop-blur-sm sm:gap-2 sm:rounded-2xl sm:p-2.5">
-        <div className={`${FILTER_FIELD_CLASS} min-w-[5.5rem]`}>
-          <label htmlFor="filter-distance" className="sr-only">
-            Distance
-          </label>
-          <select
-            id="filter-distance"
-            disabled={pending}
-            aria-label="Distance"
-            className={FILTER_SELECT_CLASS}
-            value={defaults.distanceKm ?? ""}
-            onChange={(e) => {
-              const v = e.target.value
-              applyFilters({ distanceKm: v || undefined })
-            }}
+        <div
+          className="border-t border-border/60 pt-3"
+          role="group"
+          aria-labelledby="job-search-refine-heading"
+        >
+          <h3
+            id="job-search-refine-heading"
+            className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs"
           >
-            {DISTANCE_MILES_OPTIONS.map((opt) => (
-              <option key={opt.label} value={opt.value ?? ""}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className={`${FILTER_FIELD_CLASS} min-w-[5.5rem]`}>
-          <label htmlFor="filter-date" className="sr-only">
-            Date posted
-          </label>
-          <select
-            id="filter-date"
-            disabled={pending}
-            aria-label="Date posted"
-            className={FILTER_SELECT_CLASS}
-            value={defaults.maxDaysOld ?? ""}
-            onChange={(e) => {
-              const v = e.target.value
-              applyFilters({ maxDaysOld: v || undefined })
-            }}
-          >
-            {MAX_DAYS_OPTIONS.map((opt) => (
-              <option key={opt.label} value={opt.value ?? ""}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className={`${FILTER_FIELD_CLASS} min-w-[4.5rem] max-w-[9rem] sm:max-w-[11rem]`}>
-          <label htmlFor="filter-sort" className="sr-only">
-            Sort by
-          </label>
-          <select
-            id="filter-sort"
-            disabled={pending}
-            aria-label="Sort by"
-            className={FILTER_SELECT_CLASS}
-            value={defaults.sortBy ?? "date"}
-            onChange={(e) => {
-              applyFilters({ sortBy: e.target.value || undefined })
-            }}
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            Refine results
+          </h3>
+          <div className="grid grid-cols-1 gap-2 min-[28rem]:grid-cols-2 lg:grid-cols-3">
+            <FilterSelect
+              id="filter-distance"
+              label="Distance"
+              disabled={pending}
+              value={
+                defaults.distanceKm === undefined
+                  ? ""
+                  : String(defaults.distanceKm)
+              }
+              options={distanceOptions}
+              onChange={(v) => applyFilters({ distanceKm: v || undefined })}
+            />
+            <FilterSelect
+              id="filter-date"
+              label="Date posted"
+              disabled={pending}
+              value={
+                defaults.maxDaysOld === undefined ? "" : String(defaults.maxDaysOld)
+              }
+              options={dateOptions}
+              onChange={(v) => applyFilters({ maxDaysOld: v || undefined })}
+            />
+            <FilterSelect
+              id="filter-sort"
+              label="Sort by"
+              disabled={pending}
+              value={defaults.sortBy ?? "date"}
+              options={sortOptions}
+              onChange={(v) => applyFilters({ sortBy: v || undefined })}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   )
 }

@@ -1,7 +1,10 @@
 import { Suspense } from "react"
 import { profileService, savedJobSearchesService } from "@guavajobs/core"
 
-import { JobSearchToolbar } from "@/components/jobs/job-search-toolbar"
+import {
+  JobsSearchSectionShell,
+  PreferenceQLoader,
+} from "@/components/jobs/jobs-search-section-shell"
 import { SavedSearchChips } from "@/components/jobs/saved-search-chips"
 import { getSession } from "@/lib/auth/get-session"
 import type { ParsedJobsSearchParams } from "@/lib/jobs/search-params"
@@ -11,7 +14,7 @@ type JobsSearchSectionProps = {
   search: ParsedJobsSearchParams
 }
 
-export async function JobsSearchSection({ search }: JobsSearchSectionProps) {
+async function JobsSearchUserData({ search }: JobsSearchSectionProps) {
   const session = await getSession()
   const savedSearches = session
     ? await savedJobSearchesService.listByUser(session.id)
@@ -26,15 +29,23 @@ export async function JobsSearchSection({ search }: JobsSearchSectionProps) {
   }
 
   return (
-    <div className="space-y-2 sm:space-y-3">
-      <JobSearchToolbar defaults={search} preferenceQ={preferenceQ} />
+    <>
+      <PreferenceQLoader preferenceQ={preferenceQ} />
+      <SavedSearchChips
+        savedSearches={savedSearches}
+        isSignedIn={Boolean(session)}
+        currentSearch={search}
+      />
+    </>
+  )
+}
+
+export function JobsSearchSection({ search }: JobsSearchSectionProps) {
+  return (
+    <JobsSearchSectionShell search={search}>
       <Suspense fallback={null}>
-        <SavedSearchChips
-          savedSearches={savedSearches}
-          isSignedIn={Boolean(session)}
-          currentSearch={search}
-        />
+        <JobsSearchUserData search={search} />
       </Suspense>
-    </div>
+    </JobsSearchSectionShell>
   )
 }

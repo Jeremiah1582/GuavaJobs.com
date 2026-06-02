@@ -4,13 +4,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
 import { JobSearchBarForm } from "@shared/components/job-search-bar";
-import { buildJobsSearchUrl, type JobSortBy } from "@shared/jobs/search-url";
+import {
+  buildJobsSearchUrl,
+  type JobCountry,
+  type JobSortBy,
+} from "@shared/jobs/search-url";
 
 export type JobSearchBarProps = {
   defaultQ?: string;
   defaultWhere?: string;
-  defaultCountry?: "gb" | "de";
+  defaultCountry?: JobCountry;
   submitLabel?: string;
+  /** Omit outer card chrome when nested inside `JobSearchToolbar`. */
+  embedded?: boolean;
   className?: string;
   /** From profile quiz (`roleType`) — powers “Use my preferences”. */
   preferenceQ?: string;
@@ -36,6 +42,7 @@ export function JobSearchBar({
   defaultWhere = "",
   defaultCountry = "gb",
   submitLabel = "Find jobs",
+  embedded = false,
   className = "",
   preferenceQ,
 }: JobSearchBarProps) {
@@ -43,24 +50,31 @@ export function JobSearchBar({
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
   const [q, setQ] = useState(defaultQ);
+  const [where, setWhere] = useState(defaultWhere);
+  const [country, setCountry] = useState<JobCountry>(defaultCountry);
 
   useEffect(() => {
     setQ(defaultQ);
   }, [defaultQ]);
 
+  useEffect(() => {
+    setWhere(defaultWhere);
+  }, [defaultWhere]);
+
+  useEffect(() => {
+    setCountry(defaultCountry);
+  }, [defaultCountry]);
+
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const keywords = String(form.get("q") ?? "").trim();
-    const where = String(form.get("where") ?? "").trim();
-    const country = (String(form.get("country") ?? "gb") === "de" ? "de" : "gb") as
-      | "gb"
-      | "de";
+    const keywords = q.trim();
+    const location = where.trim();
+    const market = country;
 
     const href = buildJobsSearchUrl("/jobs", {
       q: keywords || undefined,
-      where: where || undefined,
-      country,
+      where: location || undefined,
+      country: market,
       ...preservedFilters(searchParams),
     });
 
@@ -73,9 +87,12 @@ export function JobSearchBar({
     Boolean(preferenceQ?.trim()) && preferenceQ!.trim() !== q.trim();
 
   return (
-    <>
-      {preferenceQ?.trim() ? (
-        <div className="mb-1 flex justify-end">
+    <div className="min-w-0 space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <p className="text-[11px] font-medium text-muted-foreground sm:text-xs">
+          Keywords &amp; location
+        </p>
+        {preferenceQ?.trim() ? (
           <button
             type="button"
             disabled={!showPreferences || pending}
@@ -84,21 +101,22 @@ export function JobSearchBar({
           >
             Use my preferences
           </button>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
       <JobSearchBarForm
-        key={`${defaultQ}|${defaultWhere}|${defaultCountry}`}
         idPrefix="job-search"
-        defaultQ={defaultQ}
-        defaultWhere={defaultWhere}
-        defaultCountry={defaultCountry}
         q={q}
         onQChange={setQ}
+        where={where}
+        onWhereChange={setWhere}
+        country={country}
+        onCountryChange={setCountry}
         submitLabel={submitLabel}
         pending={pending}
+        embedded={embedded}
         className={className}
         onSubmit={onSubmit}
       />
-    </>
+    </div>
   );
 }

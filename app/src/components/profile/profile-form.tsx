@@ -9,7 +9,7 @@ import { ExperienceSection } from "@/components/profile/experience-section"
 import { ProfilePicture } from "@/components/profile/profile-picture"
 import { ProgressRing } from "@/components/profile/progress-ring"
 import { QuizSection } from "@/components/profile/quiz-section"
-import { UrlImport } from "@/components/profile/url-import"
+import { UrlImport, type UrlImportApplyPayload } from "@/components/profile/url-import"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +23,7 @@ import type {
   EducationEntry,
   ExperienceEntry,
   ProfileDto,
+  ProfileImportMeta,
   ProfileQuiz,
 } from "@guavajobs/core"
 
@@ -50,6 +51,29 @@ const emptyEducation = (): EducationEntry => ({
 })
 
 export function ProfileForm({ initialProfile }: ProfileFormProps) {
+  const [displayName, setDisplayName] = useState(
+    initialProfile.displayName ?? ""
+  )
+  const [headline, setHeadline] = useState(initialProfile.headline ?? "")
+  const [location, setLocation] = useState(initialProfile.location ?? "")
+  const [websiteUrl, setWebsiteUrl] = useState(initialProfile.websiteUrl ?? "")
+  const [phone, setPhone] = useState(initialProfile.phone ?? "")
+  const [addressLine1, setAddressLine1] = useState(
+    initialProfile.addressLine1 ?? ""
+  )
+  const [addressLine2, setAddressLine2] = useState(
+    initialProfile.addressLine2 ?? ""
+  )
+  const [city, setCity] = useState(initialProfile.city ?? "")
+  const [region, setRegion] = useState(initialProfile.region ?? "")
+  const [postalCode, setPostalCode] = useState(initialProfile.postalCode ?? "")
+  const [country, setCountry] = useState(initialProfile.country ?? "")
+  const [lastImportSourceUrl, setLastImportSourceUrl] = useState(
+    initialProfile.lastImportSourceUrl ?? ""
+  )
+  const [importMeta, setImportMeta] = useState<ProfileImportMeta | null>(
+    initialProfile.importMetaJson
+  )
   const [profilePicture, setProfilePicture] = useState<string | null>(
     initialProfile.avatarUrl ?? null
   )
@@ -131,18 +155,42 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
     toast.message("CV text applied — review entries and save.")
   }
 
-  function handleUrlImport(data: {
-    name?: string | null
-    summary?: string | null
-    location?: string | null
-    skills?: string[]
-    experience?: ExperienceEntry[]
-    education?: EducationEntry[]
-  }) {
+  function applyIfEmpty(
+    current: string,
+    next: string | null | undefined,
+    setter: (value: string) => void,
+  ) {
+    if (next && !current.trim()) {
+      setter(next)
+    }
+  }
+
+  function handleUrlImport(data: UrlImportApplyPayload) {
+    applyIfEmpty(displayName, data.name, setDisplayName)
+    applyIfEmpty(headline, data.headline, setHeadline)
+    applyIfEmpty(location, data.location, setLocation)
+    applyIfEmpty(phone, data.phone, setPhone)
+    applyIfEmpty(websiteUrl, data.websiteUrl, setWebsiteUrl)
+    applyIfEmpty(addressLine1, data.addressLine1, setAddressLine1)
+    applyIfEmpty(addressLine2, data.addressLine2, setAddressLine2)
+    applyIfEmpty(city, data.city, setCity)
+    applyIfEmpty(region, data.region, setRegion)
+    applyIfEmpty(postalCode, data.postalCode, setPostalCode)
+    applyIfEmpty(country, data.country, setCountry)
+    if (data.avatarUrl && !profilePicture) {
+      setProfilePicture(data.avatarUrl)
+    }
+    if (data.sourceUrl) {
+      setLastImportSourceUrl(data.sourceUrl)
+      setImportMeta({
+        confidence: data.confidence,
+        pagesScanned: data.pagesScanned,
+      })
+    }
     if (data.summary && !summary.trim()) {
       setSummary(data.summary)
     }
-    if (data.skills?.length) {
+    if (data.skills.length) {
       setSkillsText((prev) => {
         const existing = prev
           .split(",")
@@ -152,11 +200,14 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
         return merged.join(", ")
       })
     }
-    if (data.experience?.length) {
+    if (data.experience.length) {
       setExperience((prev) => [...prev, ...data.experience])
     }
-    if (data.education?.length) {
+    if (data.education.length) {
       setEducation((prev) => [...prev, ...data.education])
+    }
+    if (data.quiz && Object.keys(data.quiz).length > 0) {
+      setQuiz((prev) => ({ ...prev, ...data.quiz }))
     }
     toast.success("Profile data imported — review and save your changes.")
   }
@@ -174,11 +225,54 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
 
           {/* Progress Ring and Info */}
           <div className="flex flex-1 flex-col items-center gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="text-center md:text-left">
+            <div className="w-full max-w-md space-y-3 text-center md:text-left">
               <h2 className="font-serif text-2xl text-foreground">
                 Your Profile
               </h2>
-              <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="displayName">Full name</Label>
+                  <Input
+                    id="displayName"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Jane Smith"
+                    maxLength={200}
+                  />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="headline">Headline</Label>
+                  <Input
+                    id="headline"
+                    value={headline}
+                    onChange={(e) => setHeadline(e.target.value)}
+                    placeholder="Senior software engineer"
+                    maxLength={300}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="London, UK"
+                    maxLength={200}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="websiteUrl">Website</Label>
+                  <Input
+                    id="websiteUrl"
+                    type="url"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    placeholder="https://yoursite.com"
+                    maxLength={2000}
+                  />
+                </div>
+              </div>
+              <p className="max-w-sm text-sm text-muted-foreground">
                 A complete profile helps our AI write better cover letters
                 tailored to your experience.
               </p>
@@ -213,7 +307,30 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
         />
         <input type="hidden" name="quizJson" value={JSON.stringify(quiz)} />
         <input type="hidden" name="skills" value={skillsText} />
+        <input type="hidden" name="displayName" value={displayName} />
+        <input type="hidden" name="headline" value={headline} />
+        <input type="hidden" name="location" value={location} />
+        <input type="hidden" name="websiteUrl" value={websiteUrl} />
+        <input
+          type="hidden"
+          name="lastImportSourceUrl"
+          value={lastImportSourceUrl}
+        />
+        <input
+          type="hidden"
+          name="importMetaJson"
+          value={
+            importMeta ? JSON.stringify(importMeta) : ""
+          }
+        />
         <input type="hidden" name="avatarUrl" value={profilePicture ?? ""} />
+        <input type="hidden" name="phone" value={phone} />
+        <input type="hidden" name="addressLine1" value={addressLine1} />
+        <input type="hidden" name="addressLine2" value={addressLine2} />
+        <input type="hidden" name="city" value={city} />
+        <input type="hidden" name="region" value={region} />
+        <input type="hidden" name="postalCode" value={postalCode} />
+        <input type="hidden" name="country" value={country} />
 
         {saveState?.error ? (
           <Alert variant="destructive">
@@ -249,11 +366,106 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
           </div>
         </section>
 
-        {/* Experience Section */}
+        {/* Contact Section */}
         <section className="space-y-4 rounded-xl border border-border/50 bg-gradient-to-br from-card to-guava-green-light/10 p-6">
           <div className="flex items-center gap-3">
             <div className="flex size-8 items-center justify-center rounded-full bg-guava-green-gradient text-xs font-semibold text-white">
               2
+            </div>
+            <div>
+              <h2 className="font-serif text-xl text-foreground">Contact</h2>
+              <p className="text-sm text-muted-foreground">
+                Optional — used on applications and imports from your site.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+44 7700 900000"
+                maxLength={40}
+                autoComplete="tel"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="addressLine1">Address line 1</Label>
+              <Input
+                id="addressLine1"
+                value={addressLine1}
+                onChange={(e) => setAddressLine1(e.target.value)}
+                placeholder="123 High Street"
+                maxLength={200}
+                autoComplete="address-line1"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="addressLine2">Address line 2</Label>
+              <Input
+                id="addressLine2"
+                value={addressLine2}
+                onChange={(e) => setAddressLine2(e.target.value)}
+                placeholder="Flat 4"
+                maxLength={200}
+                autoComplete="address-line2"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Manchester"
+                maxLength={100}
+                autoComplete="address-level2"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="region">County / region</Label>
+              <Input
+                id="region"
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                placeholder="Greater Manchester"
+                maxLength={100}
+                autoComplete="address-level1"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="postalCode">Postcode</Label>
+              <Input
+                id="postalCode"
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value)}
+                placeholder="M1 1AA"
+                maxLength={20}
+                autoComplete="postal-code"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <Input
+                id="country"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder="United Kingdom"
+                maxLength={100}
+                autoComplete="country-name"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Experience Section */}
+        <section className="space-y-4 rounded-xl border border-border/50 bg-gradient-to-br from-card to-guava-green-light/10 p-6">
+          <div className="flex items-center gap-3">
+            <div className="flex size-8 items-center justify-center rounded-full bg-guava-green-gradient text-xs font-semibold text-white">
+              3
             </div>
             <h2 className="font-serif text-xl text-foreground">Experience</h2>
           </div>
@@ -264,7 +476,7 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
         <section className="space-y-4 rounded-xl border border-border/50 bg-gradient-to-br from-card to-muted/10 p-6">
           <div className="flex items-center gap-3">
             <div className="flex size-8 items-center justify-center rounded-full bg-guava-pink-gradient text-xs font-semibold text-accent-foreground">
-              3
+              4
             </div>
             <h2 className="font-serif text-xl text-foreground">Skills</h2>
           </div>
@@ -287,7 +499,7 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex size-8 items-center justify-center rounded-full bg-guava-green-gradient text-xs font-semibold text-white">
-                4
+                5
               </div>
               <h2 className="font-serif text-xl text-foreground">Education</h2>
             </div>
@@ -371,7 +583,7 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
         <section className="space-y-4 rounded-xl border border-border/50 bg-gradient-to-br from-card to-muted/10 p-6">
           <div className="flex items-center gap-3">
             <div className="flex size-8 items-center justify-center rounded-full bg-guava-pink-gradient text-xs font-semibold text-accent-foreground">
-              5
+              6
             </div>
             <h2 className="font-serif text-xl text-foreground">Preferences</h2>
           </div>
