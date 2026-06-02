@@ -3,10 +3,11 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
+  BarChart3,
   Briefcase,
   ChevronLeft,
   ChevronRight,
-  LayoutDashboard,
+  ClipboardList,
   PlusCircle,
   Settings,
   User,
@@ -26,7 +27,8 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { name: "Jobs", href: "/jobs", icon: Briefcase },
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Applications", href: "/applications", icon: ClipboardList },
+  { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "Add application", href: "/applications/new", icon: PlusCircle },
   { name: "Profile", href: "/profile", icon: User },
   { name: "Settings", href: "/settings", icon: Settings },
