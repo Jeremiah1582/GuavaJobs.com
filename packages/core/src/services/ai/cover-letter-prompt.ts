@@ -11,6 +11,41 @@ export type CoverLetterGenerationResult = {
   citations: CoverLetterCitation[];
 };
 
+/** Placeholders models sometimes emit instead of the real name. */
+const CANDIDATE_NAME_PLACEHOLDER_PATTERNS = [
+  /\[\s*your\s*name\s*\]/gi,
+  /\[\s*candidate\s*name\s*\]/gi,
+  /\[\s*full\s*name\s*\]/gi,
+  /\[\s*name\s*\]/gi,
+  /<\s*your\s*name\s*>/gi,
+] as const;
+
+export function applyCandidateNameToCoverLetter(
+  content: string,
+  displayName: string,
+): string {
+  const name = displayName.trim();
+  if (!name) return content;
+
+  let result = content;
+  for (const pattern of CANDIDATE_NAME_PLACEHOLDER_PATTERNS) {
+    result = result.replace(pattern, name);
+  }
+  return result;
+}
+
+export function buildCoverLetterSystemPrompt(candidateDisplayName: string): string {
+  const name = candidateDisplayName.trim();
+  return `You are a professional cover letter writer for job seekers in the UK and Germany.
+Rules:
+- Use ONLY facts present in the candidate profile. Never invent employers, job titles, dates, skills, or education.
+- The candidate's full name is "${name}". Sign the letter with this exact name (e.g. "Kind regards,\\n${name}"). Never use placeholders such as [Your Name], [Name], or "Your Name".
+- Write in clear, professional English unless the job description is clearly German.
+- Keep the letter concise (roughly 250–400 words), specific to the role, and ready to send after light editing.
+- citations must reference real profile excerpts you used (field name + short quote).
+- Return valid JSON only.`;
+}
+
 function formatExperience(experienceJson: unknown): string {
   if (!Array.isArray(experienceJson) || experienceJson.length === 0) return "";
   return experienceJson
@@ -51,12 +86,23 @@ export function buildCoverLetterUserPrompt(input: {
   jobListing: JobListingSnapshot;
   jobDescriptionText: string;
   profile: ApplicationProfileSnapshotDto;
+  candidateDisplayName: string;
   existingLetter?: string | null;
   adaptExisting?: boolean;
 }): string {
-  const { jobListing, jobDescriptionText, profile, existingLetter, adaptExisting } = input;
+  const {
+    jobListing,
+    jobDescriptionText,
+    profile,
+    candidateDisplayName,
+    existingLetter,
+    adaptExisting,
+  } = input;
+
+  const name = candidateDisplayName.trim();
 
   const profileBlock = [
+    `Candidate full name (required for signature): ${name}`,
     profile.summary?.trim() ? `Summary:\n${profile.summary.trim()}` : null,
     profile.skills.length > 0 ? `Skills: ${profile.skills.join(", ")}` : null,
     formatExperience(profile.experienceJson)
@@ -89,15 +135,13 @@ ${profileBlock}${adaptBlock}
 Return JSON: { "content": "<full letter text>", "citations": [{ "field": "<summary|skills|experience|education>", "excerpt": "<short quote from profile used>" }] }`;
 }
 
-export const COVER_LETTER_SYSTEM_PROMPT = `You are a professional cover letter writer for job seekers in the UK and Germany.
-Rules:
-- Use ONLY facts present in the candidate profile. Never invent employers, job titles, dates, skills, or education.
-- Write in clear, professional English unless the job description is clearly German.
-- Keep the letter concise (roughly 250–400 words), specific to the role, and ready to send after light editing.
-- citations must reference real profile excerpts you used (field name + short quote).
-- Return valid JSON only.`;
+/** @deprecated Use buildCoverLetterSystemPrompt(displayName) — kept for tests referencing a default. */
+export const COVER_LETTER_SYSTEM_PROMPT = buildCoverLetterSystemPrompt("Candidate");
 
-export function parseCoverLetterGeneration(raw: string): CoverLetterGenerationResult {
+export function parseCoverLetterGeneration(
+  raw: string,
+  candidateDisplayName?: string,
+): CoverLetterGenerationResult {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -110,9 +154,13 @@ export function parseCoverLetterGeneration(raw: string): CoverLetterGenerationRe
   }
 
   const row = parsed as Record<string, unknown>;
-  const content = typeof row.content === "string" ? row.content.trim() : "";
+  let content = typeof row.content === "string" ? row.content.trim() : "";
   if (!content) {
     throw new Error("AI response missing letter content");
+  }
+
+  if (candidateDisplayName?.trim()) {
+    content = applyCandidateNameToCoverLetter(content, candidateDisplayName);
   }
 
   const citationsRaw = Array.isArray(row.citations) ? row.citations : [];

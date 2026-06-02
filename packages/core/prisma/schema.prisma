@@ -34,6 +34,65 @@ enum CoverLetterSource {
   AI
 }
 
+enum JobCategory {
+  ENGINEERING
+  PRODUCT
+  DESIGN
+  DATA
+  OTHER
+  UNKNOWN
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+  UNKNOWN
+}
+
+enum LanguageProficiency {
+  BASIC
+  CONVERSATIONAL
+  PROFESSIONAL
+  FLUENT
+  NATIVE
+}
+
+enum RightToWorkStatus {
+  UK_CITIZEN
+  SETTLED_STATUS
+  PRE_SETTLED
+  SKILLED_WORKER
+  STUDENT_VISA
+  NEEDS_SPONSORSHIP
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum SeniorityLevel {
+  INTERN
+  JUNIOR
+  MID
+  SENIOR
+  LEAD
+  EXECUTIVE
+}
+
+enum RelocationWillingness {
+  NONE
+  LOCAL
+  NATIONAL
+  INTERNATIONAL
+}
+
+enum SalaryPeriod {
+  ANNUAL
+  MONTHLY
+  HOURLY
+}
+
 model User {
   id                     String    @id @default(uuid()) @db.Uuid
   email                  String    @unique
@@ -64,12 +123,29 @@ model Profile {
   region              String?
   postalCode          String?
   country             String?
-  websiteUrl          String?
-  experienceJson      Json?
-  skills              String[]  @default([])
-  educationJson       Json?
-  cvFileUrl           String?
-  quizJson            Json?
+  websiteUrl               String?
+  linkedInUrl              String?
+  githubUrl                String?
+  aspiringRole             String?
+  personalityType          String?
+  languagesJson            Json?
+  salaryCurrency           String?                @default("GBP")
+  salaryMin                Int?
+  salaryMax                Int?
+  salaryPeriod             SalaryPeriod?          @default(ANNUAL)
+  salaryNegotiable         Boolean                @default(false)
+  rightToWork              RightToWorkStatus?
+  rightToWorkNote          String?
+  noticePeriodWeeks        Int?
+  availableFrom            DateTime?
+  targetSeniority          SeniorityLevel?
+  employmentTypePreference EmploymentType?
+  relocationWillingness    RelocationWillingness?
+  experienceJson           Json?
+  skills                   String[]               @default([])
+  educationJson            Json?
+  cvFileUrl                String?
+  quizJson                 Json?
   lastImportedAt      DateTime?
   lastImportSourceUrl String?
   importMetaJson      Json?
@@ -99,6 +175,9 @@ model Application {
   viaRecruiter           Boolean                    @default(false)
   fitScore               String?
   industry               String?
+  jobCategory            JobCategory                @default(UNKNOWN)
+  jobCategoryOther       String?
+  employmentType         EmploymentType             @default(UNKNOWN)
   requirementsNotes      String?                    @db.Text
   aboutNotes             String?                    @db.Text
   language               String?
@@ -110,7 +189,6 @@ model Application {
   jobDescriptionSnapshot String?                    @db.Text
   jobListingSnapshot     Json?
   jobDescriptionText     String?                    @db.Text
-  notes                  String?                    @db.Text
   appliedAt              DateTime?
   createdAt              DateTime                   @default(now())
   updatedAt              DateTime                   @updatedAt

@@ -7,6 +7,7 @@ import {
   coverLettersService,
   jobsService,
   usersService,
+  type JobListing,
 } from "@guavajobs/core"
 
 import { getSession } from "@/lib/auth/get-session"
@@ -32,7 +33,12 @@ export type GenerateCoverLetterActionResult =
 
 export async function generateCoverLetterFromJobAction(
   jobId: string,
-  options?: { adaptExisting?: boolean; fresh?: boolean },
+  options?: {
+    adaptExisting?: boolean
+    fresh?: boolean
+    /** Search-result listing when Adzuna detail API returns 404. */
+    jobSnapshot?: JobListing
+  },
 ): Promise<GenerateCoverLetterActionResult> {
   const session = await getSession()
   if (!session) {
@@ -41,9 +47,13 @@ export async function generateCoverLetterFromJobAction(
 
   await usersService.ensureUser(session)
 
-  const job = await jobsService.getById(jobId)
+  const job = await jobsService.resolveListing(jobId, options?.jobSnapshot)
   if (!job) {
-    return { ok: false, message: "Job not found" }
+    return {
+      ok: false,
+      message:
+        "We could not load this job listing. Refresh the page and try again, or open the job from search results.",
+    }
   }
 
   try {

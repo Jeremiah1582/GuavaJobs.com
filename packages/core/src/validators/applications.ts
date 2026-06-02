@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ApplicationStatus } from "../generated/prisma";
+import { ApplicationStatus, EmploymentType, JobCategory } from "../generated/prisma";
 import { PIPELINE_APPLICATION_STATUSES } from "../applications/constants";
 
 const applicationStatusValues = [
@@ -54,6 +54,9 @@ export const applicationUpdateSchema = z.object({
   viaRecruiter: z.boolean().optional(),
   fitScore: z.string().trim().max(20).optional(),
   industry: z.string().trim().max(120).optional(),
+  jobCategory: z.nativeEnum(JobCategory).optional(),
+  jobCategoryOther: z.string().trim().max(200).optional(),
+  employmentType: z.nativeEnum(EmploymentType).optional(),
   requirementsNotes: z.string().trim().max(10_000).optional(),
   aboutNotes: z.string().trim().max(10_000).optional(),
   language: z.string().trim().max(80).optional(),

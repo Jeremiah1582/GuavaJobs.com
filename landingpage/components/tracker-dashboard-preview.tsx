@@ -95,7 +95,7 @@ export function TrackerDashboardPreview() {
         <div className="mb-10 text-center md:mb-12">
           <p className="text-sm font-medium text-guava-pink">Your career command centre</p>
           <h2 className="mt-2 font-serif text-3xl text-foreground text-balance md:text-4xl">
-            See every application at a glance
+            Track every application with ease
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
             Track stages, add notes, and stay organised — the same dashboard you get when you

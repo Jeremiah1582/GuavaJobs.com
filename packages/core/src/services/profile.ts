@@ -1,8 +1,10 @@
 import { Prisma, type Profile } from "../generated/prisma";
 import { getDb } from "../db";
 import {
+  profileLanguagesSchema,
   profileUpdateSchema,
   type ProfileImportMeta,
+  type ProfileLanguageEntry,
   type ProfileUpdateInput,
 } from "../validators/profile";
 
@@ -26,6 +28,23 @@ export type ProfileDto = {
   postalCode: string | null;
   country: string | null;
   websiteUrl: string | null;
+  linkedInUrl: string | null;
+  githubUrl: string | null;
+  aspiringRole: string | null;
+  personalityType: string | null;
+  languagesJson: ProfileLanguageEntry[];
+  salaryCurrency: string | null;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryPeriod: string | null;
+  salaryNegotiable: boolean;
+  rightToWork: string | null;
+  rightToWorkNote: string | null;
+  noticePeriodWeeks: number | null;
+  availableFrom: string | null;
+  targetSeniority: string | null;
+  employmentTypePreference: string | null;
+  relocationWillingness: string | null;
   experienceJson: unknown;
   skills: string[];
   educationJson: unknown;
@@ -45,6 +64,7 @@ const COMPLETENESS_SECTIONS = [
   { key: "skills", label: "Skills" },
   { key: "education", label: "Education" },
   { key: "quiz", label: "Job preferences" },
+  { key: "career", label: "Career goals & logistics" },
 ] as const;
 
 function hasExperience(value: unknown): boolean {
@@ -62,6 +82,25 @@ function hasQuiz(value: unknown): boolean {
     quiz.roleType ||
       quiz.workMode ||
       (Array.isArray(quiz.priorities) && quiz.priorities.length > 0),
+  );
+}
+
+function parseLanguages(value: unknown): ProfileLanguageEntry[] {
+  const parsed = profileLanguagesSchema.safeParse(value);
+  return parsed.success ? parsed.data : [];
+}
+
+function hasCareerPreferences(profile: Profile): boolean {
+  return Boolean(
+    profile.aspiringRole?.trim() ||
+      profile.personalityType?.trim() ||
+      profile.rightToWork ||
+      profile.salaryMin != null ||
+      profile.salaryMax != null ||
+      parseLanguages(profile.languagesJson).length > 0 ||
+      profile.targetSeniority ||
+      profile.employmentTypePreference ||
+      profile.relocationWillingness,
   );
 }
 
@@ -83,6 +122,7 @@ export function computeCompleteness(profile: Profile): ProfileCompleteness {
     skills: profile.skills.length > 0,
     education: hasEducation(profile.educationJson),
     quiz: hasQuiz(profile.quizJson),
+    career: hasCareerPreferences(profile),
   };
 
   const filled = COMPLETENESS_SECTIONS.filter((s) => checks[s.key]).length;
@@ -114,6 +154,23 @@ function toDto(profile: ProfileWithUser): ProfileDto {
     postalCode: profile.postalCode,
     country: profile.country,
     websiteUrl: profile.websiteUrl,
+    linkedInUrl: profile.linkedInUrl,
+    githubUrl: profile.githubUrl,
+    aspiringRole: profile.aspiringRole,
+    personalityType: profile.personalityType,
+    languagesJson: parseLanguages(profile.languagesJson),
+    salaryCurrency: profile.salaryCurrency,
+    salaryMin: profile.salaryMin,
+    salaryMax: profile.salaryMax,
+    salaryPeriod: profile.salaryPeriod,
+    salaryNegotiable: profile.salaryNegotiable,
+    rightToWork: profile.rightToWork,
+    rightToWorkNote: profile.rightToWorkNote,
+    noticePeriodWeeks: profile.noticePeriodWeeks,
+    availableFrom: profile.availableFrom?.toISOString() ?? null,
+    targetSeniority: profile.targetSeniority,
+    employmentTypePreference: profile.employmentTypePreference,
+    relocationWillingness: profile.relocationWillingness,
     experienceJson: profile.experienceJson ?? [],
     skills: profile.skills,
     educationJson: profile.educationJson ?? [],
@@ -160,57 +217,62 @@ export async function update(
 
   const data: Prisma.ProfileUpdateInput = {};
 
-  if (parsed.summary !== undefined) {
-    data.summary = parsed.summary;
+  if (parsed.summary !== undefined) data.summary = parsed.summary;
+  if (parsed.headline !== undefined) data.headline = parsed.headline;
+  if (parsed.location !== undefined) data.location = parsed.location;
+  if (parsed.avatarUrl !== undefined) data.avatarUrl = parsed.avatarUrl;
+  if (parsed.phone !== undefined) data.phone = parsed.phone;
+  if (parsed.addressLine1 !== undefined) data.addressLine1 = parsed.addressLine1;
+  if (parsed.addressLine2 !== undefined) data.addressLine2 = parsed.addressLine2;
+  if (parsed.city !== undefined) data.city = parsed.city;
+  if (parsed.region !== undefined) data.region = parsed.region;
+  if (parsed.postalCode !== undefined) data.postalCode = parsed.postalCode;
+  if (parsed.country !== undefined) data.country = parsed.country;
+  if (parsed.websiteUrl !== undefined) data.websiteUrl = parsed.websiteUrl;
+  if (parsed.linkedInUrl !== undefined) data.linkedInUrl = parsed.linkedInUrl;
+  if (parsed.githubUrl !== undefined) data.githubUrl = parsed.githubUrl;
+  if (parsed.aspiringRole !== undefined) data.aspiringRole = parsed.aspiringRole;
+  if (parsed.personalityType !== undefined) {
+    data.personalityType = parsed.personalityType;
   }
-  if (parsed.headline !== undefined) {
-    data.headline = parsed.headline;
+  if (parsed.languagesJson !== undefined) {
+    data.languagesJson = parsed.languagesJson;
   }
-  if (parsed.location !== undefined) {
-    data.location = parsed.location;
+  if (parsed.salaryCurrency !== undefined) {
+    data.salaryCurrency = parsed.salaryCurrency;
   }
-  if (parsed.avatarUrl !== undefined) {
-    data.avatarUrl = parsed.avatarUrl;
+  if (parsed.salaryMin !== undefined) data.salaryMin = parsed.salaryMin;
+  if (parsed.salaryMax !== undefined) data.salaryMax = parsed.salaryMax;
+  if (parsed.salaryPeriod !== undefined) data.salaryPeriod = parsed.salaryPeriod;
+  if (parsed.salaryNegotiable !== undefined) {
+    data.salaryNegotiable = parsed.salaryNegotiable;
   }
-  if (parsed.phone !== undefined) {
-    data.phone = parsed.phone;
+  if (parsed.rightToWork !== undefined) data.rightToWork = parsed.rightToWork;
+  if (parsed.rightToWorkNote !== undefined) {
+    data.rightToWorkNote = parsed.rightToWorkNote;
   }
-  if (parsed.addressLine1 !== undefined) {
-    data.addressLine1 = parsed.addressLine1;
+  if (parsed.noticePeriodWeeks !== undefined) {
+    data.noticePeriodWeeks = parsed.noticePeriodWeeks;
   }
-  if (parsed.addressLine2 !== undefined) {
-    data.addressLine2 = parsed.addressLine2;
+  if (parsed.availableFrom !== undefined) {
+    data.availableFrom = parsed.availableFrom ?? null;
   }
-  if (parsed.city !== undefined) {
-    data.city = parsed.city;
+  if (parsed.targetSeniority !== undefined) {
+    data.targetSeniority = parsed.targetSeniority;
   }
-  if (parsed.region !== undefined) {
-    data.region = parsed.region;
+  if (parsed.employmentTypePreference !== undefined) {
+    data.employmentTypePreference = parsed.employmentTypePreference;
   }
-  if (parsed.postalCode !== undefined) {
-    data.postalCode = parsed.postalCode;
-  }
-  if (parsed.country !== undefined) {
-    data.country = parsed.country;
-  }
-  if (parsed.websiteUrl !== undefined) {
-    data.websiteUrl = parsed.websiteUrl;
+  if (parsed.relocationWillingness !== undefined) {
+    data.relocationWillingness = parsed.relocationWillingness;
   }
   if (parsed.experienceJson !== undefined) {
     data.experienceJson = parsed.experienceJson;
   }
-  if (parsed.skills !== undefined) {
-    data.skills = parsed.skills;
-  }
-  if (parsed.educationJson !== undefined) {
-    data.educationJson = parsed.educationJson;
-  }
-  if (parsed.quizJson !== undefined) {
-    data.quizJson = parsed.quizJson;
-  }
-  if (parsed.cvFileUrl !== undefined) {
-    data.cvFileUrl = parsed.cvFileUrl;
-  }
+  if (parsed.skills !== undefined) data.skills = parsed.skills;
+  if (parsed.educationJson !== undefined) data.educationJson = parsed.educationJson;
+  if (parsed.quizJson !== undefined) data.quizJson = parsed.quizJson;
+  if (parsed.cvFileUrl !== undefined) data.cvFileUrl = parsed.cvFileUrl;
   if (parsed.lastImportSourceUrl !== undefined) {
     data.lastImportSourceUrl = parsed.lastImportSourceUrl;
     if (parsed.lastImportSourceUrl) {

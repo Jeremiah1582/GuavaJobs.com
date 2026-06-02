@@ -8,6 +8,11 @@ import { CvPasteHelper } from "@/components/profile/cv-paste-helper"
 import { ExperienceSection } from "@/components/profile/experience-section"
 import { ProfilePicture } from "@/components/profile/profile-picture"
 import { ProgressRing } from "@/components/profile/progress-ring"
+import {
+  CareerPreferencesSection,
+  careerPreferencesFromProfile,
+  type CareerPreferencesState,
+} from "@/components/profile/career-preferences-section"
 import { QuizSection } from "@/components/profile/quiz-section"
 import { UrlImport, type UrlImportApplyPayload } from "@/components/profile/url-import"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -88,16 +93,30 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
   const [quiz, setQuiz] = useState<ProfileQuiz>(
     parseQuiz(initialProfile.quizJson)
   )
+  const [career, setCareer] = useState<CareerPreferencesState>(
+    careerPreferencesFromProfile(initialProfile)
+  )
 
-  // Calculate completeness dynamically
+  // Calculate completeness dynamically (aligned with core sections)
   const calculateCompleteness = () => {
     let filled = 0
-    const total = 5
+    const total = 6
     if (summary.trim()) filled++
     if (skillsText.trim()) filled++
     if (experience.length > 0) filled++
     if (education.length > 0) filled++
     if (quiz && Object.keys(quiz).length > 0) filled++
+    const hasCareer =
+      career.aspiringRole.trim() ||
+      career.personalityType.trim() ||
+      career.rightToWork ||
+      career.languages.length > 0 ||
+      career.salaryMin ||
+      career.salaryMax ||
+      career.targetSeniority ||
+      career.employmentTypePreference ||
+      career.relocationWillingness
+    if (hasCareer) filled++
     return Math.round((filled / total) * 100)
   }
 
@@ -306,6 +325,49 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
           value={JSON.stringify(education)}
         />
         <input type="hidden" name="quizJson" value={JSON.stringify(quiz)} />
+        <input
+          type="hidden"
+          name="languagesJson"
+          value={JSON.stringify(
+            career.languages.filter((l) => l.language.trim()),
+          )}
+        />
+        <input type="hidden" name="linkedInUrl" value={career.linkedInUrl} />
+        <input type="hidden" name="githubUrl" value={career.githubUrl} />
+        <input type="hidden" name="aspiringRole" value={career.aspiringRole} />
+        <input
+          type="hidden"
+          name="personalityType"
+          value={career.personalityType}
+        />
+        <input type="hidden" name="salaryCurrency" value={career.salaryCurrency} />
+        <input type="hidden" name="salaryMin" value={career.salaryMin} />
+        <input type="hidden" name="salaryMax" value={career.salaryMax} />
+        <input type="hidden" name="salaryPeriod" value={career.salaryPeriod} />
+        <input
+          type="hidden"
+          name="salaryNegotiable"
+          value={career.salaryNegotiable ? "true" : "false"}
+        />
+        <input type="hidden" name="rightToWork" value={career.rightToWork} />
+        <input type="hidden" name="rightToWorkNote" value={career.rightToWorkNote} />
+        <input
+          type="hidden"
+          name="noticePeriodWeeks"
+          value={career.noticePeriodWeeks}
+        />
+        <input type="hidden" name="availableFrom" value={career.availableFrom} />
+        <input type="hidden" name="targetSeniority" value={career.targetSeniority} />
+        <input
+          type="hidden"
+          name="employmentTypePreference"
+          value={career.employmentTypePreference}
+        />
+        <input
+          type="hidden"
+          name="relocationWillingness"
+          value={career.relocationWillingness}
+        />
         <input type="hidden" name="skills" value={skillsText} />
         <input type="hidden" name="displayName" value={displayName} />
         <input type="hidden" name="headline" value={headline} />
@@ -579,13 +641,24 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
           )}
         </section>
 
-        {/* Quiz Section */}
-        <section className="space-y-4 rounded-xl border border-border/50 bg-gradient-to-br from-card to-muted/10 p-6">
+        {/* Career preferences */}
+        <section className="space-y-4 rounded-xl border border-border/50 bg-gradient-to-br from-card to-guava-pink-light/10 p-6">
           <div className="flex items-center gap-3">
             <div className="flex size-8 items-center justify-center rounded-full bg-guava-pink-gradient text-xs font-semibold text-accent-foreground">
               6
             </div>
-            <h2 className="font-serif text-xl text-foreground">Preferences</h2>
+            <h2 className="font-serif text-xl text-foreground">Career & logistics</h2>
+          </div>
+          <CareerPreferencesSection value={career} onChange={setCareer} />
+        </section>
+
+        {/* Quiz Section */}
+        <section className="space-y-4 rounded-xl border border-border/50 bg-gradient-to-br from-card to-muted/10 p-6">
+          <div className="flex items-center gap-3">
+            <div className="flex size-8 items-center justify-center rounded-full bg-guava-green-gradient text-xs font-semibold text-white">
+              7
+            </div>
+            <h2 className="font-serif text-xl text-foreground">Job search preferences</h2>
           </div>
           <QuizSection quiz={quiz} onChange={setQuiz} />
         </section>

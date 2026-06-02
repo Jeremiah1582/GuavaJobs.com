@@ -5,7 +5,13 @@ import type {
   ApplicationRejectionPhase,
   ApplicationStatus as PrismaApplicationStatus,
   CoverLetter,
+  EmploymentType,
+  JobCategory,
 } from "../generated/prisma";
+import {
+  inferEmploymentTypeFromListing,
+  inferJobCategoryFromListing,
+} from "../applications/job-taxonomy";
 import { nextPipelineStatus } from "../applications/constants";
 import {
   buildJobListingSnapshotFromApplication,
@@ -51,6 +57,8 @@ export type ApplicationListItem = {
   viaRecruiter: boolean;
   coverLetterPreview: string | null;
   hasCoverLetter: boolean;
+  jobCategory: JobCategory;
+  employmentType: EmploymentType;
 };
 
 export type ApplicationNoteDto = {
@@ -96,6 +104,9 @@ export type ApplicationDetail = {
   viaRecruiter: boolean;
   fitScore: string | null;
   industry: string | null;
+  jobCategory: JobCategory;
+  jobCategoryOther: string | null;
+  employmentType: EmploymentType;
   requirementsNotes: string | null;
   aboutNotes: string | null;
   language: string | null;
@@ -263,6 +274,9 @@ function mapDetail(application: Application & { timelineNotes: ApplicationNote[]
     viaRecruiter: application.viaRecruiter,
     fitScore: application.fitScore,
     industry: application.industry,
+    jobCategory: application.jobCategory,
+    jobCategoryOther: application.jobCategoryOther,
+    employmentType: application.employmentType,
     requirementsNotes: application.requirementsNotes,
     aboutNotes: application.aboutNotes,
     language: application.language,
@@ -322,6 +336,8 @@ export async function createFromJobListing(
   const listingSnapshot = buildJobListingSnapshotFromListing(job);
   const descriptionText = job.description?.trim() || null;
   const snapshotFields = jobSnapshotPersistPayload(listingSnapshot, descriptionText);
+  const jobCategory = inferJobCategoryFromListing(listingSnapshot);
+  const employmentType = inferEmploymentTypeFromListing(listingSnapshot);
 
   try {
     const created = await db.application.create({
@@ -333,6 +349,10 @@ export async function createFromJobListing(
         location: job.location || null,
         jobUrl: job.redirectUrl || null,
         status: "DRAFT",
+        jobCategory,
+        employmentType,
+        jobCategoryOther:
+          jobCategory === "OTHER" ? listingSnapshot.category?.trim() || null : null,
         ...snapshotFields,
       },
     });
@@ -381,6 +401,8 @@ export async function createManual(
       location: parsed.location?.trim() || null,
       appliedAt: parsed.appliedAt ?? null,
       status: parsed.appliedAt ? "APPLIED" : "DRAFT",
+      jobCategory: "UNKNOWN",
+      employmentType: "UNKNOWN",
       ...jobSnapshotPersistPayload(listingSnapshot, descriptionText),
     },
   });
@@ -407,6 +429,8 @@ export async function listByUser(userId: string): Promise<ApplicationListItem[]>
       viaRecruiter: true,
       updatedAt: true,
       jobExternalId: true,
+      jobCategory: true,
+      employmentType: true,
       createdAt: true,
       _count: { select: { timelineNotes: true } },
       coverLetters: {
@@ -438,6 +462,8 @@ export async function listByUser(userId: string): Promise<ApplicationListItem[]>
         ? previewCoverLetterContent(manualContent)
         : null,
       hasCoverLetter: Boolean(manualContent),
+      jobCategory: row.jobCategory,
+      employmentType: row.employmentType,
     };
   });
 }
@@ -570,6 +596,16 @@ export async function update(
   if (parsed.viaRecruiter !== undefined) data.viaRecruiter = parsed.viaRecruiter;
   if (parsed.fitScore !== undefined) data.fitScore = parsed.fitScore?.trim() || null;
   if (parsed.industry !== undefined) data.industry = parsed.industry?.trim() || null;
+  if (parsed.jobCategory !== undefined) {
+    data.jobCategory = parsed.jobCategory;
+    if (parsed.jobCategory !== "OTHER") {
+      data.jobCategoryOther = null;
+    }
+  }
+  if (parsed.jobCategoryOther !== undefined) {
+    data.jobCategoryOther = parsed.jobCategoryOther?.trim() || null;
+  }
+  if (parsed.employmentType !== undefined) data.employmentType = parsed.employmentType;
   if (parsed.requirementsNotes !== undefined) {
     data.requirementsNotes = parsed.requirementsNotes?.trim() || null;
   }

@@ -1,4 +1,5 @@
 import { ApiErrorCode } from "../../api/errors";
+import { getDb } from "../../db";
 import { applicationsService } from "../applications";
 import { generateCoverLetterWithOpenAI } from "../ai/openai-client";
 import { isProfileReadyForAi } from "../ai/profile-readiness";
@@ -22,6 +23,16 @@ export type GenerateCoverLetterResult = {
   letter: CoverLetterDto;
   citations: CoverLetterCitation[];
 };
+
+async function getUserDisplayName(userId: string): Promise<string | null> {
+  const db = getDb();
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { displayName: true },
+  });
+  const name = user?.displayName?.trim();
+  return name && name.length > 0 ? name : null;
+}
 
 export async function generateForApplication(
   userId: string,
@@ -66,11 +77,22 @@ export async function generateForApplication(
       ? false
       : options?.adaptExisting ?? Boolean(existingLetter?.content?.trim());
 
+  const candidateDisplayName = await getUserDisplayName(userId);
+  if (!candidateDisplayName) {
+    throw new CoverLettersServiceError(
+      ApiErrorCode.VALIDATION_ERROR,
+      "Display name required for cover letter",
+      400,
+      "Add your full name on your profile before generating a cover letter.",
+    );
+  }
+
   const generated = await generateCoverLetterWithOpenAI({
     jobTitle: application.title,
     company: application.company,
     jobDescription: jd,
     profile: profileSnapshot!,
+    candidateDisplayName,
     jobListing: jobListingSnapshot ?? undefined,
     existingLetter: existingLetter?.content ?? null,
     adaptExisting,

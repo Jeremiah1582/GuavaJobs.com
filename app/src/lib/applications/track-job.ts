@@ -20,7 +20,7 @@ export async function trackJobById(jobId: string): Promise<void> {
 
   let job
   try {
-    job = await jobsService.getById(jobId)
+    job = await jobsService.resolveListing(jobId)
   } catch (err) {
     if (err instanceof JobsServiceError && err.status === 503) {
       throw err

@@ -114,6 +114,7 @@ export function JobDetailContent({
 
       <JobCoverLetterGenerate
         jobId={job.id}
+        jobListing={job}
         session={session}
         initialContext={coverLetterContext}
         signInNext={trackNext}

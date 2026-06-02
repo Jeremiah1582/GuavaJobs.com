@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
 import { CoverLetterMergeAnimation } from "@/components/cover-letters/cover-letter-merge-animation"
 import { Button } from "@/components/ui/button"
+import type { JobListing } from "@guavajobs/core"
+
 import type { JobCoverLetterContext } from "@/lib/applications/cover-letter-context"
 import {
   generateCoverLetterFromJobAction,
@@ -16,21 +17,30 @@ import {
 
 type JobCoverLetterGenerateProps = {
   jobId: string
+  /** Full listing from search — used when Adzuna detail API has no record. */
+  jobListing?: JobListing
   signInNext: string
   session: { id: string } | null
   initialContext?: JobCoverLetterContext | null
 }
 
+type GenerateOverlayPhase = "idle" | "generating" | "complete"
+
 export function JobCoverLetterGenerate({
   jobId,
+  jobListing,
   signInNext,
   session,
   initialContext = null,
 }: JobCoverLetterGenerateProps) {
-  const router = useRouter()
-  const [generating, setGenerating] = useState(false)
+  const [overlayPhase, setOverlayPhase] = useState<GenerateOverlayPhase>("idle")
+  const [completedApplicationId, setCompletedApplicationId] = useState<string | null>(
+    null,
+  )
   const [context, setContext] = useState<JobCoverLetterContext | null>(initialContext)
   const [pending, startTransition] = useTransition()
+
+  const showOverlay = overlayPhase === "generating" || overlayPhase === "complete"
 
   useEffect(() => {
     if (!session) {
@@ -50,18 +60,38 @@ export function JobCoverLetterGenerate({
     }
   }, [jobId, session, initialContext])
 
+  function dismissOverlay() {
+    setOverlayPhase("idle")
+    setCompletedApplicationId(null)
+  }
+
   function onGenerate() {
-    if (!session || generating || pending) return
-    setGenerating(true)
+    if (!session || showOverlay || pending) return
+    setOverlayPhase("generating")
+    setCompletedApplicationId(null)
+
     startTransition(async () => {
-      const result = await generateCoverLetterFromJobAction(jobId)
+      const result = await generateCoverLetterFromJobAction(jobId, {
+        jobSnapshot: jobListing?.id === jobId ? jobListing : undefined,
+      })
       if (!result.ok) {
-        setGenerating(false)
+        setOverlayPhase("idle")
         toast.error(result.message)
         return
       }
-      router.push(`/applications/${result.applicationId}?generated=1`)
-      router.refresh()
+
+      setCompletedApplicationId(result.applicationId)
+      setContext((prev) =>
+        prev
+          ? {
+              ...prev,
+              hasLetter: true,
+              applicationId: result.applicationId,
+            }
+          : prev,
+      )
+      setOverlayPhase("complete")
+      toast.success("Cover letter ready")
     })
   }
 
@@ -80,67 +110,92 @@ export function JobCoverLetterGenerate({
     )
   }
 
-  if (generating) {
-    return (
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
-        role="dialog"
-        aria-modal
-        aria-busy
-        aria-label="Generating cover letter"
-      >
-        <CoverLetterMergeAnimation active className="w-full max-w-md" />
-      </div>
-    )
-  }
-
   const profileReady = context?.profileReady ?? false
+  const applicationId = completedApplicationId ?? context?.applicationId
   const hasLetter = context?.hasLetter ?? false
-  const applicationId = context?.applicationId
 
   return (
-    <section className="rounded-lg border border-guava-pink/25 bg-guava-pink-light/30 p-4">
-      <p className="text-sm font-semibold text-foreground">AI cover letter</p>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {profileReady
-          ? "Generate a professional letter using only facts from your profile and this job description."
-          : `Complete your profile (${context?.completeness.percent ?? 0}% done) before generating.`}
-      </p>
+    <>
+      {showOverlay ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal
+          aria-busy={overlayPhase === "generating"}
+          aria-label={
+            overlayPhase === "complete"
+              ? "Cover letter generation complete"
+              : "Generating cover letter"
+          }
+        >
+          <div className="w-full max-w-md space-y-4">
+            <CoverLetterMergeAnimation
+              active
+              complete={overlayPhase === "complete"}
+              className="w-full"
+            />
+            {overlayPhase === "complete" && applicationId ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                <Button
+                  asChild
+                  className="bg-guava-pink-gradient text-accent-foreground hover:opacity-90"
+                >
+                  <Link href={`/applications/${applicationId}?generated=1`}>
+                    Review cover letter
+                  </Link>
+                </Button>
+                <Button type="button" variant="outline" onClick={dismissOverlay}>
+                  Continue on job board
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {!profileReady ? (
-          <Button asChild variant="outline" size="sm" disabled={pending}>
-            <Link href="/profile">Complete your profile</Link>
-          </Button>
-        ) : hasLetter && applicationId ? (
-          <>
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/applications/${applicationId}`}>View application</Link>
+      <section className="rounded-lg border border-guava-pink/25 bg-guava-pink-light/30 p-4">
+        <p className="text-sm font-semibold text-foreground">AI cover letter</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {profileReady
+            ? "Generate a professional letter using only facts from your profile and this job description."
+            : `Complete your profile (${context?.completeness.percent ?? 0}% done) before generating.`}
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {!profileReady ? (
+            <Button asChild variant="outline" size="sm" disabled={pending}>
+              <Link href="/profile">Complete your profile</Link>
             </Button>
+          ) : hasLetter && applicationId ? (
+            <>
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/applications/${applicationId}`}>View application</Link>
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={pending || showOverlay}
+                onClick={onGenerate}
+              >
+                <Sparkles className="size-4" aria-hidden />
+                Regenerate letter
+              </Button>
+            </>
+          ) : (
             <Button
               type="button"
               size="sm"
-              variant="secondary"
-              disabled={pending}
+              className="bg-guava-pink-gradient text-accent-foreground hover:opacity-90"
+              disabled={pending || showOverlay}
               onClick={onGenerate}
             >
               <Sparkles className="size-4" aria-hidden />
-              Regenerate letter
+              Generate cover letter with AI
             </Button>
-          </>
-        ) : (
-          <Button
-            type="button"
-            size="sm"
-            className="bg-guava-pink-gradient text-accent-foreground hover:opacity-90"
-            disabled={pending}
-            onClick={onGenerate}
-          >
-            <Sparkles className="size-4" aria-hidden />
-            Generate cover letter with AI
-          </Button>
-        )}
-      </div>
-    </section>
+          )}
+        </div>
+      </section>
+    </>
   )
 }

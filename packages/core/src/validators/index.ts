@@ -6,14 +6,28 @@ export {
   educationEntrySchema,
   experienceEntrySchema,
   profileImportMetaSchema,
+  profileLanguageEntrySchema,
+  profileLanguagesSchema,
   profileQuizSchema,
   profileUpdateSchema,
   type EducationEntry,
   type ExperienceEntry,
   type ProfileImportMeta,
+  type ProfileLanguageEntry,
   type ProfileQuiz,
   type ProfileUpdateInput,
 } from "./profile";
+
+export {
+  EMPLOYMENT_PREFERENCE_LABELS,
+  EMPLOYMENT_PREFERENCE_VALUES,
+  LANGUAGE_PROFICIENCY_LABELS,
+  PERSONALITY_TEST_URL,
+  RELOCATION_LABELS,
+  RIGHT_TO_WORK_LABELS,
+  SALARY_PERIOD_LABELS,
+  SENIORITY_LEVEL_LABELS,
+} from "../profile/career-preferences";
 
 export {
   profileUrlImportResultSchema,

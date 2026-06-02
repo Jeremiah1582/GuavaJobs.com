@@ -1,23 +1,35 @@
 "use client"
 
-import { useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useRef } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 
 export function ApplicationGeneratedToast() {
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const router = useRouter()
+  const hasShownToastRef = useRef(false)
+
+  const generated = searchParams.get("generated")
+  const queryString = searchParams.toString()
 
   useEffect(() => {
-    if (searchParams.get("generated") !== "1") return
+    hasShownToastRef.current = false
+  }, [pathname])
 
-    toast.success("Cover letter ready — review and edit below.")
+  useEffect(() => {
+    if (generated !== "1") return
 
-    const params = new URLSearchParams(searchParams.toString())
+    if (!hasShownToastRef.current) {
+      hasShownToastRef.current = true
+      toast.success("Cover letter ready — review and edit below.")
+    }
+
+    const params = new URLSearchParams(queryString)
     params.delete("generated")
-    const query = params.toString()
-    router.replace(query ? `?${query}` : "", { scroll: false })
-  }, [router, searchParams])
+    const nextQuery = params.toString()
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
+  }, [generated, queryString, pathname, router])
 
   return null
 }

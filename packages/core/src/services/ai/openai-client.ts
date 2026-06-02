@@ -6,8 +6,8 @@ import {
   chatCompletion,
 } from "./client";
 import {
+  buildCoverLetterSystemPrompt,
   buildCoverLetterUserPrompt,
-  COVER_LETTER_SYSTEM_PROMPT,
   parseCoverLetterGeneration,
 } from "./cover-letter-prompt";
 import type { JobListingSnapshot } from "../../applications/snapshots";
@@ -17,6 +17,8 @@ export type GenerateCoverLetterInput = {
   company: string;
   jobDescription: string;
   profile: ApplicationProfileSnapshotDto;
+  /** User.displayName from the database — used for signature and placeholder replacement. */
+  candidateDisplayName: string;
   jobListing?: JobListingSnapshot;
   existingLetter?: string | null;
   adaptExisting?: boolean;
@@ -99,10 +101,13 @@ export async function generateCoverLetterWithOpenAI(
     capturedAt: new Date().toISOString(),
   };
 
+  const candidateDisplayName = input.candidateDisplayName.trim();
+
   const userPrompt = buildCoverLetterUserPrompt({
     jobListing,
     jobDescriptionText: input.jobDescription,
     profile: input.profile,
+    candidateDisplayName,
     existingLetter: input.existingLetter,
     adaptExisting: input.adaptExisting,
   });
@@ -110,12 +115,15 @@ export async function generateCoverLetterWithOpenAI(
   try {
     const raw = await chatCompletion({
       messages: [
-        { role: "system", content: COVER_LETTER_SYSTEM_PROMPT },
+        {
+          role: "system",
+          content: buildCoverLetterSystemPrompt(candidateDisplayName),
+        },
         { role: "user", content: userPrompt },
       ],
       responseFormat: "json_object",
     });
-    return parseCoverLetterGeneration(raw);
+    return parseCoverLetterGeneration(raw, candidateDisplayName);
   } catch (error) {
     if (error instanceof AiClientError) {
       throw mapAiError(error);

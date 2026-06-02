@@ -25,6 +25,21 @@ export {
   STAGE_ORDER,
   formatApplicationStatusLabel,
 } from "../applications/constants";
+export {
+  EMPLOYMENT_TYPE_VALUES,
+  JOB_CATEGORY_VALUES,
+  formatEmploymentTypeLabel,
+  formatJobCategoryLabel,
+} from "../applications/job-taxonomy";
+export type {
+  EmploymentType,
+  JobCategory,
+  LanguageProficiency,
+  RelocationWillingness,
+  RightToWorkStatus,
+  SalaryPeriod,
+  SeniorityLevel,
+} from "../generated/prisma";
 export type {
   ApplicationBundle,
   ApplicationBundleFlags,

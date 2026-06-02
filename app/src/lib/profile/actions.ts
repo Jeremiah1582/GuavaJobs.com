@@ -54,7 +54,18 @@ export async function updateProfileAction(
       "postalCode",
       "country",
       "websiteUrl",
+      "linkedInUrl",
+      "githubUrl",
+      "aspiringRole",
+      "personalityType",
+      "salaryCurrency",
+      "rightToWorkNote",
       "lastImportSourceUrl",
+      "rightToWork",
+      "targetSeniority",
+      "employmentTypePreference",
+      "relocationWillingness",
+      "salaryPeriod",
     ] as const
 
     for (const field of nullableFields) {
@@ -67,8 +78,14 @@ export async function updateProfileAction(
     const experienceRaw = formData.get("experienceJson")
     const educationRaw = formData.get("educationJson")
     const quizRaw = formData.get("quizJson")
+    const languagesRaw = formData.get("languagesJson")
     const skillsRaw = formData.get("skills")
     const importMetaRaw = formData.get("importMetaJson")
+    const salaryNegotiableRaw = formData.get("salaryNegotiable")
+    const salaryMinRaw = formData.get("salaryMin")
+    const salaryMaxRaw = formData.get("salaryMax")
+    const noticePeriodRaw = formData.get("noticePeriodWeeks")
+    const availableFromRaw = formData.get("availableFrom")
 
     if (typeof experienceRaw === "string" && experienceRaw.length > 0) {
       input.experienceJson = JSON.parse(experienceRaw)
@@ -80,6 +97,38 @@ export async function updateProfileAction(
 
     if (typeof quizRaw === "string" && quizRaw.length > 0) {
       input.quizJson = JSON.parse(quizRaw)
+    }
+
+    if (typeof languagesRaw === "string" && languagesRaw.length > 0) {
+      input.languagesJson = JSON.parse(languagesRaw)
+    }
+
+    if (typeof salaryNegotiableRaw === "string") {
+      input.salaryNegotiable = salaryNegotiableRaw === "true"
+    }
+
+    function parseOptionalInt(raw: FormDataEntryValue | null): number | null | undefined {
+      if (raw === null) return undefined
+      const value = String(raw).trim()
+      if (value === "") return null
+      const n = Number.parseInt(value, 10)
+      return Number.isNaN(n) ? null : n
+    }
+
+    const salaryMin = parseOptionalInt(salaryMinRaw)
+    if (salaryMin !== undefined) input.salaryMin = salaryMin
+
+    const salaryMax = parseOptionalInt(salaryMaxRaw)
+    if (salaryMax !== undefined) input.salaryMax = salaryMax
+
+    const noticePeriodWeeks = parseOptionalInt(noticePeriodRaw)
+    if (noticePeriodWeeks !== undefined) {
+      input.noticePeriodWeeks = noticePeriodWeeks
+    }
+
+    if (typeof availableFromRaw === "string") {
+      const value = availableFromRaw.trim()
+      input.availableFrom = value === "" ? null : value
     }
 
     if (typeof skillsRaw === "string") {

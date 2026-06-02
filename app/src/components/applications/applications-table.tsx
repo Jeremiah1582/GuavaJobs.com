@@ -15,8 +15,11 @@ import {
 import type { ApplicationDetail, ApplicationListItem } from "@guavajobs/core"
 import {
   formatApplicationStatusLabel,
+  formatJobCategoryLabel,
   getApplicationRowClass,
+  JOB_CATEGORY_VALUES,
   PIPELINE_STATUS_OPTIONS,
+  type JobCategory,
 } from "@guavajobs/core"
 import { toast } from "sonner"
 
@@ -69,6 +72,12 @@ export function ApplicationsTable({ applications }: ApplicationTrackerProps) {
     Record<string, { round: string; at: string; location: string; url: string }>
   >({})
   const [showInterviewForm, setShowInterviewForm] = useState<string | null>(null)
+  const [categoryFilter, setCategoryFilter] = useState<"ALL" | JobCategory>("ALL")
+
+  const visibleApplications =
+    categoryFilter === "ALL"
+      ? applications
+      : applications.filter((application) => application.jobCategory === categoryFilter)
 
   const loadDetail = useCallback(
     async (id: string) => {
@@ -240,7 +249,33 @@ export function ApplicationsTable({ applications }: ApplicationTrackerProps) {
 
   return (
     <div className="space-y-3">
-      {applications.map((application) => {
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <label htmlFor="applications-category-filter" className="text-xs text-muted-foreground">
+          Category
+        </label>
+        <select
+          id="applications-category-filter"
+          className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+          value={categoryFilter}
+          onChange={(e) =>
+            setCategoryFilter(e.target.value as "ALL" | JobCategory)
+          }
+        >
+          <option value="ALL">All categories</option>
+          {JOB_CATEGORY_VALUES.map((value) => (
+            <option key={value} value={value}>
+              {formatJobCategoryLabel(value)}
+            </option>
+          ))}
+        </select>
+        {categoryFilter !== "ALL" ? (
+          <span className="text-xs text-muted-foreground">
+            {visibleApplications.length} shown
+          </span>
+        ) : null}
+      </div>
+
+      {visibleApplications.map((application) => {
         const isExpanded = expandedId === application.id
         const detail = details[application.id]
         const rowClass = getApplicationRowClass(

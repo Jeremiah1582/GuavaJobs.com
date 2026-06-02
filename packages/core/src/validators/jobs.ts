@@ -18,3 +18,26 @@ export const jobSearchSchema = z.object({
 export const jobIdParamSchema = z
   .string()
   .regex(/^[a-z]{2}-\d+$/i, "Invalid job id (expected e.g. gb-1234567890)");
+
+export const jobSalarySchema = z.object({
+  min: z.number().optional(),
+  max: z.number().optional(),
+  currency: z.string().optional(),
+  isPredicted: z.boolean().optional(),
+});
+
+/** Listing payload from search results — used when Adzuna detail API returns 404. */
+export const jobListingSchema = z.object({
+  id: jobIdParamSchema,
+  country: jobCountrySchema,
+  adzunaId: z.string().min(1),
+  title: z.string().min(1).max(500),
+  company: z.string().max(300),
+  location: z.string().max(500),
+  description: z.string().max(100_000),
+  createdAt: z.string().max(50).optional(),
+  redirectUrl: z.string().max(4000),
+  category: z.string().max(200).optional(),
+  contractType: z.string().max(100).optional(),
+  salary: jobSalarySchema.optional(),
+});

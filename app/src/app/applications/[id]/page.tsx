@@ -23,7 +23,9 @@ import {
 import { ApplicationCvSection } from "@/components/applications/application-cv-section"
 import { ApplicationGeneratedToast } from "@/components/applications/application-generated-toast"
 import { ApplicationLetterEditor } from "@/components/applications/application-letter-editor"
+import { ApplicationTaxonomyFields } from "@/components/applications/application-taxonomy-fields"
 import { LetterGroundingPanel } from "@/components/applications/letter-grounding-panel"
+import { ProfileSnapshotCard } from "@/components/applications/profile-snapshot-card"
 import { ApplicationStatusForm } from "@/components/dashboard/application-status-form"
 import { ApplicationNotesPanel } from "@/components/dashboard/application-notes-panel"
 import { Badge } from "@/components/ui/badge"
@@ -73,7 +75,8 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
     throw err
   }
 
-  const { application, jobDescriptionText, jobListingSnapshot, letter } = bundle
+  const { application, jobDescriptionText, jobListingSnapshot, letter, profileSnapshot } =
+    bundle
   const profile = await profileService.getByUserId(session.id)
   const externalLink = application.jobUrl
   const jobDescription =
@@ -135,6 +138,9 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link href="/profile">Edit profile</Link>
+              </Button>
               <ApplicationStatusForm
                 applicationId={application.id}
                 currentStatus={application.status}
@@ -142,7 +148,7 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
               {externalLink && (
                 <Button asChild variant="outline" size="sm">
                   <a href={externalLink} target="_blank" rel="noopener noreferrer">
-                    View Job Posting
+                    View job
                     <ExternalLink className="ml-1.5 size-3.5" />
                   </a>
                 </Button>
@@ -245,7 +251,7 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
                 <div className="border-b border-border bg-muted/30 px-5 py-3">
                   <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                     <Briefcase className="size-4" />
-                    Job Description
+                    Job snapshot
                   </h2>
                 </div>
                 <div className="p-5">
@@ -283,9 +289,9 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
             {/* Cover Letter */}
             <section className="overflow-hidden rounded-xl border border-border bg-card">
               <div className="border-b border-border bg-muted/30 px-5 py-3">
-                <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <FileText className="size-4" />
-                  Cover Letter
+                  Cover letter
                 </h2>
               </div>
               <div className="p-5">
@@ -315,6 +321,11 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
 
           {/* Right Sidebar */}
           <div className="space-y-6">
+            <ProfileSnapshotCard
+              applicationId={application.id}
+              snapshot={profileSnapshot}
+            />
+
             {/* Notes Panel */}
             <section className="overflow-hidden rounded-xl border border-border bg-card">
               <div className="border-b border-border bg-muted/30 px-5 py-3">
@@ -331,9 +342,15 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
             {/* Additional Details */}
             <section className="overflow-hidden rounded-xl border border-border bg-card">
               <div className="border-b border-border bg-muted/30 px-5 py-3">
-                <h2 className="text-sm font-semibold text-foreground">Details</h2>
+                <h2 className="text-sm font-semibold text-foreground">Job metadata</h2>
               </div>
-              <div className="p-5">
+              <div className="p-5 space-y-5">
+                <ApplicationTaxonomyFields
+                  applicationId={application.id}
+                  jobCategory={application.jobCategory}
+                  employmentType={application.employmentType}
+                  jobCategoryOther={application.jobCategoryOther}
+                />
                 <dl className="space-y-3 text-sm">
                   {application.industry && (
                     <div>

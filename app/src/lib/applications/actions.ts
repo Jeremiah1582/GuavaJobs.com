@@ -7,7 +7,9 @@ import {
   PIPELINE_STATUS_OPTIONS,
   savedJobSearchesService,
   usersService,
+  type EmploymentType,
   type InterviewUpdateInput,
+  type JobCategory,
 } from "@guavajobs/core"
 import { getSession } from "@/lib/auth/get-session"
 
@@ -31,6 +33,18 @@ export async function getApplicationDetailAction(applicationId: string) {
 export async function getApplicationBundleAction(applicationId: string) {
   const userId = await requireUserId()
   return applicationsService.getBundleForUser(userId, applicationId)
+}
+
+export async function refreshApplicationProfileSnapshotAction(applicationId: string) {
+  const userId = await requireUserId()
+  const snapshot = await applicationsService.refreshProfileSnapshot(
+    userId,
+    applicationId,
+  )
+  revalidatePath("/dashboard")
+  revalidatePath("/applications")
+  revalidatePath(`/applications/${applicationId}`)
+  return snapshot
 }
 
 export async function updateApplicationStatusAction(
@@ -58,6 +72,9 @@ export async function updateApplicationFieldsAction(
     viaRecruiter?: boolean
     fitScore?: string
     industry?: string
+    jobCategory?: JobCategory
+    jobCategoryOther?: string
+    employmentType?: EmploymentType
     requirementsNotes?: string
     aboutNotes?: string
     language?: string
@@ -66,6 +83,7 @@ export async function updateApplicationFieldsAction(
   const userId = await requireUserId()
   await applicationsService.update(userId, applicationId, input)
   revalidatePath("/dashboard")
+  revalidatePath("/applications")
   revalidatePath(`/applications/${applicationId}`)
 }
 

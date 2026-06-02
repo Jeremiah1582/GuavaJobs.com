@@ -1,4 +1,4 @@
-created_date: 2026-05-30 19:00:00, updated_at: 2026-06-01 20:00:00
+created_date: 2026-05-30 19:00:00, updated_at: 2026-06-02 12:00:00
 
 # GuavaJobs — Architecture
 
@@ -102,7 +102,7 @@ erDiagram
 | **Live profile** | `Profile` (1:1 user) | Editable “who I am now”. |
 | **Profile for AI** | `ApplicationProfileSnapshot` (1:1 or versioned) | Immutable facts the model may cite; created at **track** (recommended) or first AI generate. |
 | **Cover letters** | `CoverLetter` — **one row per application** (`@@unique([applicationId])`); `source` MANUAL \| AI; `citationsJson` for grounding; AI regenerate **updates** the same row (adapt mode). |
-| **Notes** | `ApplicationNote` timeline | Interview prep, follow-ups—prefer over legacy `Application.notes` text column. |
+| **Notes** | `ApplicationNote` timeline | Interview prep, follow-ups; legacy `Application.notes` column removed (FA.5). |
 | **CV (V2)** | `ApplicationCvArtifact` | File reference + optional extracted text for that application only. |
 | **Job category** | Enum or string on `Application` | Simple V2 taxonomy; V3 matching uses richer categories. |
 
@@ -120,10 +120,10 @@ erDiagram
 | **FA.1** | Structured job snapshot + canonical JD text at track | Before / with F9 |
 | **FA.2** | `ApplicationProfileSnapshot` at track (or explicit refresh) | Required for F9 grounding |
 | **FA.3** | `ApplicationBundle` DTO + `GET /api/v1/applications/:id` returns bundle | F9 / detail UI |
-| **FA.4** | `jobCategory` / `employmentType` on application | V2 |
-| **FA.5** | Deprecate legacy `Application.notes`; notes API only | Cleanup |
-| **FA.6** | Unified application detail UI (one screen) | V2 |
-| **FA.7** | `ApplicationCvArtifact` per application | V2 CV generation |
+| **FA.4** | `jobCategory` / `employmentType` on application | Shipped V1 |
+| **FA.5** | Legacy `Application.notes` dropped; `ApplicationNote` only | Shipped V1 |
+| **FA.6** | Unified application detail UI (one screen) | Shipped V1 |
+| **FA.7** | `ApplicationCvArtifact` per application | **Deferred to V2** |
 
 ### Current schema (V1 baseline)
 

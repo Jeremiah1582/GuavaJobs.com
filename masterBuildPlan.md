@@ -1,4 +1,4 @@
-created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 22:00:00
+created_date: 2026-05-30 18:30:00, updated_at: 2026-06-02 12:00:00
 
 # GuavaJobs — Master Build Plan
 
@@ -192,12 +192,12 @@ created_date: 2026-05-30 18:30:00, updated_at: 2026-06-01 22:00:00
 | - [x] | **FA.1** | **Job snapshot at track:** `jobListingSnapshot` (JSON: title, company, location, salary, external id, url, posted date, etc.) + canonical `jobDescriptionText`; populate from Adzuna on track/manual create; backfill from existing columns on read where empty. |
 | - [x] | **FA.2** | **`ApplicationProfileSnapshot`:** immutable copy of profile fields used for AI (summary, experience, skills, education) — create at **track** (recommended) or on first AI generate; optional “Refresh from profile” with user confirm. |
 | - [x] | **FA.3** | **`ApplicationBundle` DTO** + `applicationsService.getBundleForUser`; `GET /api/v1/applications/:id` returns bundle (application, job snapshot, profile snapshot, manual letter, notes, flags). |
-| - [ ] | **FA.4** | **`jobCategory` / `employmentType`** on application (simple enum + optional free text); UI on detail + filter stub on tracker. |
-| - [ ] | **FA.5** | **Notes cleanup:** stop writing `Application.notes` string; tracker/detail use `ApplicationNote` only; migration to drop column when safe. |
+| - [x] | **FA.4** | **`jobCategory` / `employmentType`** on application (simple enum + optional free text); UI on detail + filter stub on tracker. |
+| - [x] | **FA.5** | **Notes cleanup:** stop writing `Application.notes` string; tracker/detail use `ApplicationNote` only; migration to drop column when safe. |
 | - [x] | **FA.6** | **Unified application detail UI:** one `/applications/[id]` layout—pipeline, job snapshot, letters, notes, grounding panel placeholder, link to profile. |
-| - [ ] | **FA.7** | **`ApplicationCvArtifact` (V2 prep):** per-application CV file ref + optional extracted text; wire in V2 CV generation. |
+| - [ ] | **FA.7** | **`ApplicationCvArtifact` (V2 prep):** per-application CV file ref + optional extracted text; wire in V2 CV generation. **Deferred to V2.** |
 
-**FA execution notes:** Snapshots over live Adzuna/Profile for history and F9 grounding. Keep `CoverLetter` and `ApplicationNote` as children. FA.1–FA.2 are **prerequisites for F9**; FA.6–FA.7 align with V2 documents.
+**FA execution notes:** Snapshots over live Adzuna/Profile for history and F9 grounding. Keep `CoverLetter` and `ApplicationNote` as children. FA.1–FA.2 are **prerequisites for F9**; FA.7 deferred to V2. F9 regression smoke: [`packages/core/docs/F9_REGRESSION_SMOKE.md`](packages/core/docs/F9_REGRESSION_SMOKE.md).
 
 ---
 
@@ -377,9 +377,9 @@ flowchart LR
 
 ## Progress snapshot
 
-**Last updated:** 2026-06-01  
-**Current focus:** F10 — AI usage limits (F9 + FA.1–FA.3 complete)  
-**V1 phases complete:** 80 / 105  
+**Last updated:** 2026-06-02  
+**Current focus:** F10 — AI usage limits (F9 + FA complete except deferred FA.7)  
+**V1 phases complete:** 82 / 105  
 **F1 foundation:** 10 / 10 complete  
 **F2 auth:** 7 / 7 complete  
 **F3 landing:** 7 / 7 complete  
@@ -388,13 +388,14 @@ flowchart LR
 **F6 profile & quiz:** 9 / 9 complete  
 **F7 application tracker:** 10 / 10 complete  
 **F8 manual cover letters:** 7 / 7 complete  
-**FA application aggregate:** 4 / 7 complete (FA.1–FA.3, FA.6)  
+**FA application aggregate:** 6 / 7 complete (FA.7 deferred to V2)  
 **F9 AI cover letters:** 10 / 10 complete
 
 ### Quick log (optional)
 
 | Date | Completed | Notes |
 |------|-----------|-------|
+| 2026-06-02 | FA.4–FA.5 + polish | Job taxonomy fields, notes column dropped, profile refresh on hub, tracker category filter |
 | 2026-06-01 | F9 + FA | AI cover letters from job board, merge animation, bundle API, single letter per app, grounding panel |
 | 2026-06-01 | Planning | Application aggregate (FA): snapshots, bundle API, phased before F9 — vision + architecture + master plan |
 | 2026-06-01 | F8.1–F8.7 | coverLettersService, migration `20260601180000_cover_letters`, API routes, CoverLetterEditor, tracker preview + Letter badge |
@@ -421,6 +422,7 @@ flowchart LR
 | 2026-05-31 | F3 landing page verified; F4 jobsService (Adzuna), API routes, /jobs UI, 15min in-memory cache |
 | 2026-05-31 | F5: route guards, track-from-job flow, applicationService, /profile stub, /applications/new |
 | 2026-06-01 | FA + docs | Application aggregate model in projectVision, architecture, master plan (7 FA phases) |
+| 2026-06-02 | FA.4–FA.5 | `jobCategory` / `employmentType`, drop legacy `applications.notes`, hub taxonomy + profile snapshot refresh |
 | 2026-06-01 | F9 + FA.1–3 | AI cover letters: OpenAI provider, generate API, job-board CTA + merge animation, application hub editor, grounding panel, single-letter model |
 | 2026-06-01 | V2-F3 polish | Application tracker colours, rejectionPhase migration, interview fields, collapsible sidebar |
 | 2026-06-01 | Planning | F7 section linked to unified job board + tracker execution plan |

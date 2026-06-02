@@ -12,8 +12,11 @@ import {
 import type { ApplicationDetail, ApplicationListItem } from "@guavajobs/core"
 import {
   formatApplicationStatusLabel,
+  formatJobCategoryLabel,
   getApplicationRowClass,
+  JOB_CATEGORY_VALUES,
   PIPELINE_STATUS_OPTIONS,
+  type JobCategory,
 } from "@guavajobs/core"
 
 import { Badge } from "@/components/ui/badge"
@@ -60,6 +63,12 @@ export function ApplicationTracker({ applications }: ApplicationTrackerProps) {
     >
   >({})
   const [showInterviewForm, setShowInterviewForm] = useState<string | null>(null)
+  const [categoryFilter, setCategoryFilter] = useState<"ALL" | JobCategory>("ALL")
+
+  const visibleApplications =
+    categoryFilter === "ALL"
+      ? applications
+      : applications.filter((application) => application.jobCategory === categoryFilter)
 
   const loadDetail = useCallback(
     async (id: string) => {
@@ -230,7 +239,34 @@ export function ApplicationTracker({ applications }: ApplicationTrackerProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <label htmlFor="tracker-category-filter" className="text-xs text-muted-foreground">
+          Category
+        </label>
+        <select
+          id="tracker-category-filter"
+          className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+          value={categoryFilter}
+          onChange={(e) =>
+            setCategoryFilter(e.target.value as "ALL" | JobCategory)
+          }
+        >
+          <option value="ALL">All categories</option>
+          {JOB_CATEGORY_VALUES.map((value) => (
+            <option key={value} value={value}>
+              {formatJobCategoryLabel(value)}
+            </option>
+          ))}
+        </select>
+        {categoryFilter !== "ALL" ? (
+          <span className="text-xs text-muted-foreground">
+            {visibleApplications.length} shown
+          </span>
+        ) : null}
+      </div>
+
+      <div className="overflow-hidden rounded-lg border border-border">
       <div className="hidden border-b border-border bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto_auto_auto_auto] md:gap-3">
         <span>Role</span>
         <span>Company</span>
@@ -241,7 +277,7 @@ export function ApplicationTracker({ applications }: ApplicationTrackerProps) {
       </div>
 
       <ul className="divide-y divide-border">
-        {applications.map((application) => {
+        {visibleApplications.map((application) => {
           const isExpanded = expandedId === application.id
           const detail = details[application.id]
           const showAll = showAllNotes[application.id]
@@ -654,6 +690,7 @@ export function ApplicationTracker({ applications }: ApplicationTrackerProps) {
           )
         })}
       </ul>
+      </div>
     </div>
   )
 }

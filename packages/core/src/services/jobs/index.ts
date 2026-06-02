@@ -5,6 +5,7 @@ import {
   fetchAdzunaSearch,
   parseJobId,
 } from "./adzuna";
+import { jobListingSchema } from "../../validators/jobs";
 import { getCached, setCached, JOB_CACHE_TTL_MS } from "./cache";
 import { JobsServiceError } from "./errors";
 import type { JobListing, JobSearchInput, JobSearchResult } from "./types";
@@ -24,6 +25,18 @@ export { JUNIOR_DEFAULT_WHAT } from "./constants";
 
 function cacheKey(prefix: string, payload: unknown): string {
   return `${prefix}:${JSON.stringify(payload)}`;
+}
+
+function cacheJobListing(job: JobListing): void {
+  const parsed = parseJobId(job.id);
+  if (!parsed) return;
+  setCached(cacheKey("job", parsed), job, JOB_CACHE_TTL_MS);
+}
+
+function cacheJobListings(jobs: JobListing[]): void {
+  for (const job of jobs) {
+    cacheJobListing(job);
+  }
 }
 
 export const jobsService = {
@@ -50,7 +63,10 @@ export const jobsService = {
       sortBy,
     });
     const cached = getCached<JobSearchResult>(key);
-    if (cached) return cached;
+    if (cached) {
+      cacheJobListings(cached.jobs);
+      return cached;
+    }
 
     try {
       const { count, results } = await fetchAdzunaSearch({
@@ -71,6 +87,7 @@ export const jobsService = {
         resultsPerPage,
         country,
       };
+      cacheJobListings(results);
       setCached(key, payload, JOB_CACHE_TTL_MS);
       return payload;
     } catch (err) {
@@ -100,6 +117,7 @@ export const jobsService = {
     try {
       const job = await fetchAdzunaJob(parsed.country, parsed.adzunaId);
       if (job) setCached(key, job, JOB_CACHE_TTL_MS);
+      if (job) cacheJobListing(job);
       return job;
     } catch (err) {
       if (err instanceof JobsServiceError) throw err;
@@ -109,5 +127,27 @@ export const jobsService = {
         503,
       );
     }
+  },
+
+  /**
+   * Resolve a listing for applications / cover letters.
+   * Uses detail API, in-memory search cache, then an optional client snapshot.
+   */
+  async resolveListing(
+    id: string,
+    snapshot?: unknown,
+  ): Promise<JobListing | null> {
+    const fromApi = await this.getById(id);
+    if (fromApi) return fromApi;
+
+    if (snapshot !== undefined) {
+      const parsed = jobListingSchema.safeParse(snapshot);
+      if (parsed.success && parsed.data.id === id) {
+        cacheJobListing(parsed.data);
+        return parsed.data;
+      }
+    }
+
+    return null;
   },
 };

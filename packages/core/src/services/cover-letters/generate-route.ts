@@ -24,7 +24,7 @@ export async function resolveApplicationIdForGenerate(
     );
   }
 
-  const job = await jobsService.getById(parsed.jobId);
+  const job = await jobsService.resolveListing(parsed.jobId);
   if (!job) {
     throw new CoverLettersServiceError(ApiErrorCode.NOT_FOUND, "Job not found", 404);
   }
