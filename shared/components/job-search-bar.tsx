@@ -62,31 +62,31 @@ function IconSearch({ className }: IconProps) {
 }
 
 const FORM_CLASS = [
-  "flex w-full min-w-0 flex-nowrap items-stretch gap-1.5",
-  "rounded-xl border border-border/80 bg-card/95 p-2 shadow-search-float backdrop-blur-sm",
-  "sm:gap-2 sm:rounded-2xl sm:p-2.5",
+  "flex w-full min-w-0 flex-nowrap items-center gap-2",
+  "rounded-lg border border-border/80 bg-card/95 p-2 shadow-search-float backdrop-blur-sm",
+  "sm:gap-3 sm:rounded-xl sm:p-3",
 ].join(" ");
 
-const FIELD_WRAP_CLASS = "relative min-w-0 shrink";
+const FIELD_WRAP_CLASS = "relative min-w-0 flex-1";
 
 const TEXT_INPUT_CLASS = [
-  "block h-9 w-full min-w-0 rounded-lg border border-input/80 bg-background py-1.5 pl-9 pr-2",
-  "text-xs text-foreground shadow-sm ring-offset-background sm:h-10 sm:rounded-xl sm:pl-10 sm:pr-3 sm:text-sm",
+  "block h-9 w-full min-w-0 rounded-md border border-input/80 bg-background py-2 pl-8 pr-2.5",
+  "text-xs text-foreground shadow-sm ring-offset-background sm:h-10 sm:rounded-lg sm:pl-10 sm:pr-3 sm:text-sm",
   "placeholder:text-muted-foreground",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-guava-pink/40",
 ].join(" ");
 
 const SELECT_CLASS = [
-  "block h-9 w-full min-w-0 appearance-none truncate rounded-lg border border-input/80 bg-background",
-  "px-2 text-xs text-foreground shadow-sm sm:h-10 sm:rounded-xl sm:px-3 sm:text-sm",
+  "block h-9 w-full min-w-0 appearance-none rounded-md border border-input/80 bg-background",
+  "py-2 pl-2.5 pr-7 text-xs text-foreground shadow-sm sm:h-10 sm:rounded-lg sm:pl-3 sm:pr-8 sm:text-sm",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-guava-pink/40",
 ].join(" ");
 
 const BUTTON_CLASS = [
-  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg",
-  "bg-guava-pink-gradient px-2.5 text-sm font-medium text-white shadow-md",
+  "inline-flex h-9 shrink-0 items-center justify-center rounded-md",
+  "bg-guava-pink-gradient px-3 text-white font-medium shadow-md",
   "transition-opacity hover:opacity-90 disabled:opacity-60",
-  "sm:h-10 sm:gap-2 sm:rounded-xl sm:px-4",
+  "sm:h-10 sm:rounded-lg sm:px-4",
 ].join(" ");
 
 const DEFAULT_Q_PLACEHOLDER = "Role or keywords…";
@@ -129,11 +129,11 @@ export function JobSearchBarForm({
     <form {...formProps} className={`${FORM_CLASS} ${className}`.trim()}>
       {children}
 
-      <div className={`${FIELD_WRAP_CLASS} min-w-[5.5rem] flex-[1.35]`}>
+      <div className={`${FIELD_WRAP_CLASS} sm:flex-[1.5]`}>
         <label htmlFor={`${idPrefix}-q`} className="sr-only">
           Keywords
         </label>
-        <IconBriefcase className="pointer-events-none absolute left-2.5 top-1/2 z-10 size-3.5 -translate-y-1/2 text-guava-pink/70 sm:left-3 sm:size-4" />
+        <IconBriefcase className="pointer-events-none absolute left-2 top-1/2 z-10 size-4 -translate-y-1/2 text-guava-pink/70 sm:left-3" />
         <input
           id={`${idPrefix}-q`}
           name="q"
@@ -146,11 +146,11 @@ export function JobSearchBarForm({
         />
       </div>
 
-      <div className={`${FIELD_WRAP_CLASS} min-w-[4.25rem] flex-1`}>
+      <div className={`${FIELD_WRAP_CLASS}`}>
         <label htmlFor={`${idPrefix}-where`} className="sr-only">
           Location
         </label>
-        <IconMapPin className="pointer-events-none absolute left-2.5 top-1/2 z-10 size-3.5 -translate-y-1/2 text-guava-green/80 sm:left-3 sm:size-4" />
+        <IconMapPin className="pointer-events-none absolute left-2 top-1/2 z-10 size-4 -translate-y-1/2 text-guava-green/80 sm:left-3" />
         <input
           id={`${idPrefix}-where`}
           name="where"
@@ -161,7 +161,7 @@ export function JobSearchBarForm({
         />
       </div>
 
-      <div className={`${FIELD_WRAP_CLASS} w-[4.75rem] sm:w-[7.25rem]`}>
+      <div className={`relative min-w-0 w-16 sm:w-20`}>
         <label htmlFor={`${idPrefix}-country`} className="sr-only">
           Market
         </label>
@@ -183,8 +183,8 @@ export function JobSearchBarForm({
         aria-label={pending ? "Searching" : submitLabel}
       >
         <IconSearch className="size-4 shrink-0" />
-        <span className="hidden whitespace-nowrap sm:inline">
-          {pending ? "Searching…" : submitLabel}
+        <span className="hidden sm:inline text-xs sm:text-sm whitespace-nowrap">
+          {pending ? "…" : "Find"}
         </span>
       </button>
     </form>
