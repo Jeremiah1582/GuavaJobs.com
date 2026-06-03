@@ -74,11 +74,11 @@ const CONTROL_CLASS = [
 ].join(" ");
 
 const FORM_LAYOUT_CLASS = [
-  "grid w-full min-w-[min(100%,28rem)] grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(5.75rem,0.72fr)_auto] items-stretch gap-2",
-  "overflow-x-auto",
+  "flex w-full flex-col gap-2",
+  "sm:flex-row sm:items-stretch",
 ].join(" ");
 
-const FIELD_WRAP_CLASS = "relative min-w-0";
+const FIELD_WRAP_CLASS = "relative w-full sm:flex-1 sm:min-w-0";
 
 const FIELD_ICON_CLASS =
   "pointer-events-none absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2";
@@ -95,10 +95,10 @@ const SELECT_CLASS = [
 ].join(" ");
 
 const BUTTON_CLASS = [
-  "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl",
+  "inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-xl",
   "bg-guava-pink-gradient px-4 text-sm font-medium text-white shadow-md",
   "transition-opacity hover:opacity-90 disabled:opacity-60",
-  "min-w-[9.5rem]",
+  "sm:w-auto sm:min-w-[9.5rem]",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-guava-pink/40",
 ].join(" ");
 
