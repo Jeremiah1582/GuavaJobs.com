@@ -140,7 +140,7 @@ function FilterSelect({
   options,
 }: FilterSelectProps) {
   return (
-    <div className="group relative flex min-w-0 flex-1 flex-col">
+    <div className="group relative flex w-full flex-col">
       <label
         htmlFor={id}
         className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80 transition-colors duration-300 group-focus-within:text-guava-pink sm:text-[11px]"
@@ -274,11 +274,12 @@ export function JobSearchToolbar({ defaults, preferenceQ }: JobSearchToolbarProp
             )}
           </div>
 
-          {/* Filter Controls — adaptive grid layout */}
+          {/* Filter Controls — full-width on mobile, side-by-side on desktop */}
           <div
             className="
               grid gap-2
-              grid-cols-3
+              grid-cols-1
+              sm:grid-cols-3
               sm:gap-3
             "
           >
