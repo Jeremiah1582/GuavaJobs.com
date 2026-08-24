@@ -8,12 +8,15 @@ import {
   usersService,
 } from "@guavajobs/core"
 
+import { trackedApplicationPath } from "@/lib/applications/tracked-path"
 import { getSession } from "@/lib/auth/get-session"
 
-export async function trackJobById(jobId: string): Promise<void> {
+export async function trackJobById(jobId: string): Promise<{ id: string }> {
   const session = await getSession()
   if (!session) {
-    redirect(`/sign-in?next=${encodeURIComponent(`/jobs/${jobId}?track=1`)}`)
+    redirect(
+      `/sign-in?next=${encodeURIComponent(`/jobs/${jobId}?track=1`)}`,
+    )
   }
 
   await usersService.ensureUser(session)
@@ -32,7 +35,11 @@ export async function trackJobById(jobId: string): Promise<void> {
     redirect("/jobs")
   }
 
-  await applicationsService.createFromJobListing(session.id, job)
+  const application = await applicationsService.createFromJobListing(
+    session.id,
+    job,
+  )
+  return { id: application.id }
 }
 
 export async function trackJobAction(formData: FormData): Promise<void> {
@@ -41,6 +48,6 @@ export async function trackJobAction(formData: FormData): Promise<void> {
     redirect("/jobs")
   }
 
-  await trackJobById(jobId)
-  redirect("/dashboard?tracked=1")
+  const application = await trackJobById(jobId)
+  redirect(trackedApplicationPath(application.id))
 }

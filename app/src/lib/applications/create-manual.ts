@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation"
 import { applicationsService, usersService } from "@guavajobs/core"
 
+import { trackedApplicationPath } from "@/lib/applications/tracked-path"
 import { getSession } from "@/lib/auth/get-session"
 
 export async function createManualApplicationAction(
@@ -18,7 +19,7 @@ export async function createManualApplicationAction(
   const appliedAtRaw = String(formData.get("appliedAt") ?? "").trim()
   const appliedAt = appliedAtRaw ? new Date(appliedAtRaw) : undefined
 
-  await applicationsService.createManual(session.id, {
+  const application = await applicationsService.createManual(session.id, {
     title: String(formData.get("title") ?? ""),
     company: String(formData.get("company") ?? ""),
     description: String(formData.get("description") ?? "") || undefined,
@@ -28,5 +29,5 @@ export async function createManualApplicationAction(
     appliedAt: appliedAt && !Number.isNaN(appliedAt.getTime()) ? appliedAt : undefined,
   })
 
-  redirect("/dashboard?tracked=1")
+  redirect(trackedApplicationPath(application.id))
 }

@@ -28,6 +28,7 @@ import { LetterGroundingPanel } from "@/components/applications/letter-grounding
 import { ProfileSnapshotCard } from "@/components/applications/profile-snapshot-card"
 import { ApplicationStatusForm } from "@/components/dashboard/application-status-form"
 import { ApplicationNotesPanel } from "@/components/dashboard/application-notes-panel"
+import { TrackedToast } from "@/components/dashboard/tracked-toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getSession } from "@/lib/auth/get-session"
@@ -57,12 +58,12 @@ function getStatusColor(status: string, rejectionPhase?: string | null) {
 }
 
 export default async function ApplicationDetailPage({ params }: ApplicationDetailPageProps) {
+  const { id } = await params
   const session = await getSession()
   if (!session) {
-    redirect("/sign-in?next=/applications")
+    redirect(`/sign-in?next=${encodeURIComponent(`/applications/${id}`)}`)
   }
 
-  const { id } = await params
   await usersService.ensureUser(session)
 
   let bundle
@@ -88,6 +89,7 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
   return (
     <div className="min-h-screen bg-background">
       <Suspense fallback={null}>
+        <TrackedToast />
         <ApplicationGeneratedToast />
       </Suspense>
 
