@@ -31,7 +31,10 @@ export function JobDetailContent({
   const salary = formatSalary(job.salary)
   const description = stripHtml(job.description)
   const posted = formatPostedDate(job.createdAt)
-  const trackNext = encodeURIComponent(`/jobs?job=${encodeURIComponent(job.id)}&track=1`)
+  // Raw path for auth forms — encode once at Link href construction.
+  const trackNext = `/jobs?job=${encodeURIComponent(job.id)}&track=1`
+  const trackAuthHref = (path: "/sign-up" | "/sign-in") =>
+    `${path}?next=${encodeURIComponent(trackNext)}`
 
   return (
     <div className={compact ? "flex h-full min-h-0 flex-col" : "space-y-8"}>
@@ -91,7 +94,7 @@ export function JobDetailContent({
             asChild
             className="w-full bg-guava-pink-gradient text-accent-foreground hover:opacity-90 sm:w-auto"
           >
-            <Link href={`/sign-up?next=${trackNext}`}>
+            <Link href={trackAuthHref("/sign-up")}>
               Track with GuavaJobs
               <ArrowUpRight className="size-4" aria-hidden />
             </Link>
@@ -107,7 +110,7 @@ export function JobDetailContent({
         ) : null}
         {!session ? (
           <Button asChild variant="ghost" className="text-muted-foreground">
-            <Link href={`/sign-in?next=${trackNext}`}>Already have an account?</Link>
+            <Link href={trackAuthHref("/sign-in")}>Already have an account?</Link>
           </Button>
         ) : null}
       </div>

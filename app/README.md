@@ -1,4 +1,4 @@
-created_date: 2026-05-30 19:00:00, updated_at: 2026-06-01 18:00:00
+created_date: 2026-05-30 19:00:00, updated_at: 2026-08-24 21:10:00
 
 # app — app.guavajobs.com
 
@@ -56,7 +56,7 @@ Middleware enforces auth using lists in [`src/lib/auth/routes.ts`](src/lib/auth/
 
 - Unauthenticated visit to a protected path → `/sign-in?next=<path>`
 - Authenticated visit to sign-in/up/forgot-password → `next` query if safe, else `/dashboard`
-- Job **Track** flow uses `?next=/jobs/{id}?track=1` (not `returnUrl`); auth forms also accept `returnUrl` as a legacy alias
+- Job **Track** flow uses `?next=/jobs?job={id}&track=1` (or `/jobs/{id}?track=1`); after auth the draft is created and the user lands on `/applications/{id}?tracked=1`. Auth forms also accept `returnUrl` as a legacy alias.
 
 ## Profile (F6)
 

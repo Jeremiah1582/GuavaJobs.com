@@ -9,6 +9,7 @@ import { JobDetailContent } from "@/components/jobs/job-detail-content"
 import { EmptyState } from "@/components/empty-state"
 import { getJobCoverLetterContextAction } from "@/lib/applications/generate-cover-letter"
 import { trackJobById } from "@/lib/applications/track-job"
+import { trackedApplicationPath } from "@/lib/applications/tracked-path"
 import { getSession } from "@/lib/auth/get-session"
 import { appUrl } from "@/lib/env"
 
@@ -52,8 +53,8 @@ export default async function JobDetailPage({
   const session = await getSession()
 
   if (track === "1" && session) {
-    await trackJobById(id)
-    redirect("/dashboard?tracked=1")
+    const application = await trackJobById(id)
+    redirect(trackedApplicationPath(application.id))
   }
 
   let job

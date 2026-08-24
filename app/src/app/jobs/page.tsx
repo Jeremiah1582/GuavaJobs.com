@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/page-header"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getJobCoverLetterContext } from "@/lib/applications/cover-letter-context"
 import { trackJobById } from "@/lib/applications/track-job"
+import { trackedApplicationPath } from "@/lib/applications/tracked-path"
 import { getSession } from "@/lib/auth/get-session"
 import { getGeoLocation } from "@/lib/geo/server"
 import {
@@ -134,8 +135,8 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
   const session = await getSession()
 
   if (track === "1" && search.job && session) {
-    await trackJobById(search.job)
-    redirect("/dashboard?tracked=1")
+    const application = await trackJobById(search.job)
+    redirect(trackedApplicationPath(application.id))
   }
 
   const suspenseKey = JSON.stringify(toSearchParamRecord(search))
